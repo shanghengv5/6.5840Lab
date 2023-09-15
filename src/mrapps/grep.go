@@ -8,7 +8,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 
@@ -23,12 +22,6 @@ import (
 func Map(filename string, contents string) []mr.KeyValue {
 	// function to detect word separators.
 	kva := []mr.KeyValue{}
-	// Open the book file
-	file, err := os.Open(filename)
-	if err != nil {
-		return kva
-	}
-	defer file.Close()
 	// grep a word less than 5
 	regStr := fmt.Sprintf(`\b\w{1,4}\b`)
 	words := regexp.MustCompile(regStr).FindAllString(contents, -1)
