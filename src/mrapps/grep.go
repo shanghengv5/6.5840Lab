@@ -37,11 +37,6 @@ func Map(filename string, contents string) []mr.KeyValue {
 		kv := mr.KeyValue{word, "1"}
 		kva = append(kva, kv)
 	}
-	// scanner := bufio.NewScanner(file)
-	// for scanner.Scan() {
-	// 	line := scanner.Text()
-
-	// }
 
 	return kva
 }
