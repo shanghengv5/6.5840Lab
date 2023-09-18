@@ -170,16 +170,18 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 
 	c.files = files
 	c.nReduce = nReduce
-	// init
+	// init jobs
 	for i := 0; i < len(c.files); i++ {
 		c.jobs[i] = idle
 	}
-
 	for i := 0; i < nReduce; i++ {
 		c.reduceJobs[i] = idle
 	}
+
+	// init retry
 	c.Retry[mapJob] = make(map[int]int)
 	c.Retry[reduceJob] = make(map[int]int)
+	// init status
 	c.jobTypeStatus[mapJob] = work
 	c.jobTypeStatus[intermediateJob] = idle
 	c.jobTypeStatus[reduceJob] = idle
