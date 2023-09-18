@@ -31,7 +31,6 @@ func (c *Coordinator) Work(args *WorkArgs, reply *WorkReply) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	// if worker call work,we think it still alive
-
 	if args.JobType == mapJob {
 		for n, b := range c.jobs {
 			if b == idle {
@@ -80,6 +79,7 @@ func (c *Coordinator) WorkDone(args *WorkDoneArgs, reply *WorkDoneReply) error {
 		for _, b := range c.jobs {
 			if b != done {
 				isDone = false
+				break
 			}
 		}
 		if isDone {
@@ -96,6 +96,7 @@ func (c *Coordinator) WorkDone(args *WorkDoneArgs, reply *WorkDoneReply) error {
 		for _, b := range c.reduceJobs {
 			if b != done {
 				isDone = false
+				break
 			}
 		}
 
@@ -132,8 +133,8 @@ func (c *Coordinator) Done() bool {
 	if c.jobTypeStatus[mapJob] == done && c.jobTypeStatus[reduceJob] == done {
 		return true
 	}
-	c.Log()
-	//reset
+	// c.Log()
+	//reset if work times bigger than 10
 	for job, b := range c.jobs {
 		if b == work {
 			c.Retry[mapJob][job]++
