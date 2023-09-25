@@ -64,6 +64,8 @@ func reduceWork(reducef func(string, []string) string) error {
 		if err != nil {
 			return err
 		}
+		// The reduce work job number is the middle number
+		// The tail number is map work job number
 		regStr := fmt.Sprintf(`^mr-%d-.+$`, jobNum)
 		regex := regexp.MustCompile(regStr)
 
