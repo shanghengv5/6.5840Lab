@@ -88,7 +88,7 @@ type Raft struct {
 	role Role
 
 	// state a Raft server must maintain.
-	RaftElectionTimeout int64
+	RaftElectionTimeoutCh chan time.Time
 
 	// Persistent state on all servers
 	currentTerm int
@@ -103,6 +103,10 @@ type Raft struct {
 	// Volatile state on leaders
 	nextIndex  []int
 	matchIndex []int
+
+	//Vote
+	Sum     chan int
+	Support chan int
 }
 
 // return currentTerm and whether this server
@@ -191,9 +195,7 @@ type RequestVoteReply struct {
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	fmt.Printf(
-		"RequestVote: Candidate %d term:%d, lastLogIndex:%d, lastLogTerm:%d, Reply:%d,role: %s, votedFor: %d, commitIndex: %d, currentTerm: %d, Time: %s \n",
-		args.CandidateId, args.Term, args.LastLogIndex, args.LastLogTerm, rf.me, rf.role.String(), rf.votedFor, rf.commitIndex, rf.currentTerm, time.Now().Format("15:04:05.000"))
+	// fmt.Printf("RequestVote: Candidate%d term:%d,  Reply:%d Role is %s VotedFor: %d Term: %d, Time: %s \n",args.CandidateId, args.Term, rf.me, rf.role.String(), rf.votedFor, rf.currentTerm, time.Now().Format("15:04:05.000"))
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm || rf.role == Candidate {
 		return
@@ -243,8 +245,11 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 }
 
 func (rf *Raft) startRequestVote() {
+	rf.mu.Lock()
 	rf.role = Candidate
 	rf.votedFor = rf.me
+	rf.mu.Unlock()
+
 	// Vote process
 	arg := RequestVoteArgs{
 		Term:         rf.currentTerm + 1,
@@ -252,49 +257,55 @@ func (rf *Raft) startRequestVote() {
 		LastLogIndex: rf.commitIndex,
 		LastLogTerm:  rf.currentTerm, // No Log Now
 	}
-	sum, support := 1, 1
-	response := make(map[int]string, 0)
 
-	fmt.Printf("StartVote: Server%d, Term:%d try %d Times,Time:%s \n", rf.me, arg.Term, rf.voteTimes, time.Now().Format("15:04:05.000"))
+	// fmt.Printf("StartVote: Server%d, Term:%d try %d Times,Time:%s \n", rf.me, arg.Term, rf.voteTimes, time.Now().Format("15:04:05.000"))
 	for server := range rf.peers {
 		reply := RequestVoteReply{}
 		if server == rf.me {
 			continue
 		}
-
-		ok := rf.sendRequestVote(server, &arg, &reply)
-
-		if ok {
-			sum++
-			if reply.VoteGranted {
-				response[server] = "agree"
-				support++
-			} else {
-				response[server] = "reject"
-			}
-		} else {
-			response[server] = "lost connect"
+		if rf.role != Candidate {
+			return
 		}
+		go func(server int) {
+			rf.Sum <- 1
+			rf.Support <- 1
+			ok := rf.sendRequestVote(server, &arg, &reply)
+			if ok {
+				s := <-rf.Sum
+				s++
+				rf.Sum <- s
+				if reply.VoteGranted {
+					support := <-rf.Support
+					support++
+					rf.Support <- support
+				}
+			}
+		}(server)
 
 	}
-	fmt.Printf("VoteResult: Server%d, Term:%d, Sum:%d, Support:%d, Response:%v, Time: %s\n", rf.me, rf.currentTerm, sum, support, response, time.Now().Format("15:04:05.000"))
+	fmt.Printf("VoteResult: Server%d, Term:%d,  Time: %s\n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
 	// vote success
-	if rf.role == Candidate && rf.halfVote(support, sum) {
+	if rf.role == Candidate && rf.halfVote() {
+		rf.mu.Lock()
 		rf.currentTerm++
 		rf.role = Leader
+		rf.mu.Unlock()
+
 		rf.voteTimes = 0
 
-		fmt.Printf("Start Heartbeat: Server%d Term:%d,Time:%s \n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
+		fmt.Printf("Start Heartbeat: Server%d Term:%d Time:%s \n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
 		// send first heartbeat
-		for rf.sendHeartbeat() {
-			rf.AddElectionTime()
-			time.Sleep(10 * time.Millisecond)
-		}
-		fmt.Printf("Stop Heartbeat: Server%d,Time:%s \n", rf.me, time.Now().Format("15:04:05.000"))
+		go func() {
+			for rf.sendHeartbeat() {
+				rf.RaftElectionTimeoutCh <- rf.AddElectionTime()
+				time.Sleep(110 * time.Millisecond)
+			}
+			rf.InitFollower()
+		}()
+		// fmt.Printf("Stop Heartbeat: Server%d Time:%s \n", rf.me, time.Now().Format("15:04:05.000"))
 	}
 
-	rf.InitFollower()
-	rf.AddElectionTime()
 }
 
 type AppendEntriesArg struct {
@@ -308,12 +319,8 @@ type AppendEntriesReply struct {
 	Success bool
 }
 
-func (rf *Raft) AddElectionTime() {
-	rf.RaftElectionTimeout = 50 + (rand.Int63() % 300)
-}
-
-func (rf *Raft) ClearElectionTime() {
-	rf.RaftElectionTimeout = 0
+func (rf *Raft) AddElectionTime() time.Time {
+	return time.Now().Add(time.Duration(150+(rand.Int63()%300)) * time.Millisecond)
 }
 
 // Invoked by leader
@@ -327,11 +334,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	// it is a heartbeat
 	if args.Entries == nil {
-		fmt.Printf("AppendEntries: Leader%d Term:%d, Follower%d Term:%d Role is %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.role.String())
+		// fmt.Printf("AppendEntries: Leader%d Term:%d, Follower%d Term:%d Role is %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.role.String())
 		rf.votedFor = -1
 		rf.role = Followers
 		rf.currentTerm = args.Term
-		rf.AddElectionTime()
+		rf.RaftElectionTimeoutCh <- rf.AddElectionTime()
 		return
 	}
 	entry, ok := rf.entries[args.PrevLogIndex]
@@ -344,22 +351,23 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	if args.LeaderCommit > rf.commitIndex {
 		rf.commitIndex = args.LeaderCommit
 	}
-	rf.AddElectionTime()
-
+	rf.RaftElectionTimeoutCh <- rf.AddElectionTime()
 }
 
 // send a periodically heartbeat
 func (rf *Raft) sendHeartbeat() bool {
 	args := AppendEntriesArg{
-		Term:    rf.currentTerm,
-		Entries: nil,
+		LeaderId: rf.me,
+		Term:     rf.currentTerm,
+		Entries:  nil,
 	}
 	return rf.role == Leader && rf.sendAppendEntry(&args)
 }
 
 func (rf *Raft) sendAppendEntry(args *AppendEntriesArg) bool {
 	// Yourself is always agree
-	sum, confirm := 1, 1
+	rf.Sum <- 1
+	rf.Support <- 1
 	for server := range rf.peers {
 		reply := AppendEntriesReply{}
 		if server == rf.me {
@@ -367,22 +375,24 @@ func (rf *Raft) sendAppendEntry(args *AppendEntriesArg) bool {
 		}
 		ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 		if ok {
-			sum++
+			s := <-rf.Sum
+			s++
+			rf.Sum <- s
 			if reply.Success {
-				confirm++
+				support := <-rf.Support
+				support++
+				rf.Support <- support
 			}
 		}
 	}
-
-	// fmt.Printf("%d server, term :%d, Heartbeat sum: %d, support: %d\n", rf.me, rf.currentTerm, sum, confirm)
-	return rf.halfVote(confirm, sum)
+	return rf.halfVote()
 }
 
-func (rf *Raft) halfVote(confirm, sum int) (success bool) {
-	if sum > 1 && confirm*2 > sum {
+func (rf *Raft) halfVote() (success bool) {
+	sum := <-rf.Sum
+	if sum > 1 && <-rf.Support*2 > sum {
 		success = true
 	}
-
 	return
 }
 
@@ -431,15 +441,23 @@ func (rf *Raft) ticker() {
 
 	for !rf.killed() {
 		// Your code here (2A)
-		for rf.RaftElectionTimeout > 0 {
-			ms := rf.RaftElectionTimeout
-			rf.ClearElectionTime()
-			time.Sleep(time.Duration(ms) * time.Millisecond)
-		}
-
-		// Start vote
-		if rf.RaftElectionTimeout <= 0 {
+		select {
+		case rf.RaftElectionTimeoutCh <- rf.AddElectionTime():
 			rf.startRequestVote()
+			fmt.Println(3)
+		case t := <-rf.RaftElectionTimeoutCh:
+			now := time.Now()
+			if t.Before(now) {
+				fmt.Println(1)
+				rf.startRequestVote()
+			} else {
+				fmt.Println(2)
+				time.Sleep(t.Sub(now))
+			}
+		default:
+			ms := 50 + (rand.Int63() % 300)
+			time.Sleep(time.Duration(ms) * time.Millisecond)
+			fmt.Println("ticker")
 		}
 
 		// pause for a random amount of time between 50 and 350
@@ -467,7 +485,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 	rf.votedFor = -1
 
-	rf.AddElectionTime()
+	rf.RaftElectionTimeoutCh = make(chan time.Time)
 
 	// Your initialization code here (2A, 2B, 2C).
 	rf.entries = make(map[int]LogEntry)
