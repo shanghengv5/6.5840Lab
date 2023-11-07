@@ -192,7 +192,7 @@ type RequestVoteReply struct {
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	fmt.Printf(
-		"Candidate server %d and term is %d, lastLogIndex: %d, lastLogTerm:%d Reply server %d,role is %s, votedFor is %d, commitIndex: %d,currentTerm: %d, Time:%s \n",
+		"RequestVote: Candidate %d term:%d, lastLogIndex:%d, lastLogTerm:%d, Reply:%d,role: %s, votedFor: %d, commitIndex: %d, currentTerm: %d, Time: %s \n",
 		args.CandidateId, args.Term, args.LastLogIndex, args.LastLogTerm, rf.me, rf.role.String(), rf.votedFor, rf.commitIndex, rf.currentTerm, time.Now().Format("15:04:05.000"))
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm || rf.role == Candidate {
@@ -255,7 +255,7 @@ func (rf *Raft) startRequestVote() {
 	sum, support := 1, 1
 	response := make(map[int]string, 0)
 
-	fmt.Printf("StartVote: Server %d voteTimes is %d,time:%s \n", rf.me, rf.voteTimes, time.Now().Format("15:04:05.000"))
+	fmt.Printf("StartVote: Server%d, Term:%d try %d Times,Time:%s \n", rf.me, arg.Term, rf.voteTimes, time.Now().Format("15:04:05.000"))
 	for server := range rf.peers {
 		reply := RequestVoteReply{}
 		if server == rf.me {
@@ -277,19 +277,20 @@ func (rf *Raft) startRequestVote() {
 		}
 
 	}
-	fmt.Printf("VoteResult: Server %d, term %d, Sum: %d, Support: %d, response: %v, time: %s\n", rf.me, rf.currentTerm, sum, support, response, time.Now().Format("15:04:05.000"))
+	fmt.Printf("VoteResult: Server%d, Term:%d, Sum:%d, Support:%d, Response:%v, Time: %s\n", rf.me, rf.currentTerm, sum, support, response, time.Now().Format("15:04:05.000"))
 	// vote success
 	if rf.role == Candidate && rf.halfVote(support, sum) {
 		rf.currentTerm++
 		rf.role = Leader
 		rf.voteTimes = 0
 
-		fmt.Printf("Heartbeat start:Server %d term:%d , time:%s \n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
+		fmt.Printf("Start Heartbeat: Server%d Term:%d,Time:%s \n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
 		// send first heartbeat
 		for rf.sendHeartbeat() {
+			rf.AddElectionTime()
 			time.Sleep(10 * time.Millisecond)
 		}
-		fmt.Printf("Heartbeat done: Server %d , time:%s \n", rf.me, time.Now().Format("15:04:05.000"))
+		fmt.Printf("Stop Heartbeat: Server%d,Time:%s \n", rf.me, time.Now().Format("15:04:05.000"))
 	}
 
 	rf.InitFollower()
@@ -326,6 +327,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	// it is a heartbeat
 	if args.Entries == nil {
+		fmt.Printf("AppendEntries: Leader%d Term:%d, Follower%d Term:%d Role is %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.role.String())
 		rf.votedFor = -1
 		rf.role = Followers
 		rf.currentTerm = args.Term
@@ -353,7 +355,6 @@ func (rf *Raft) sendHeartbeat() bool {
 		Entries: nil,
 	}
 	return rf.role == Leader && rf.sendAppendEntry(&args)
-
 }
 
 func (rf *Raft) sendAppendEntry(args *AppendEntriesArg) bool {
@@ -429,7 +430,6 @@ func (rf *Raft) killed() bool {
 func (rf *Raft) ticker() {
 
 	for !rf.killed() {
-
 		// Your code here (2A)
 		for rf.RaftElectionTimeout > 0 {
 			ms := rf.RaftElectionTimeout
