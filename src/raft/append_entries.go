@@ -87,7 +87,7 @@ func (rf *Raft) sendAppendEntry(args *AppendEntriesArg) bool {
 		}{sum, support}
 	}
 	for server := range rf.peers {
-		if server == args.LeaderId {
+		if server == rf.me {
 			continue
 		}
 		ch := <-voteCh
