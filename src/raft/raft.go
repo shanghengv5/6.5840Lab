@@ -91,6 +91,7 @@ type Raft struct {
 	RaftElectionTimeout bool
 
 	HeartbeatCh chan int
+	ElectionCh  chan int
 
 	// Persistent state on all servers
 	currentTerm int
@@ -307,7 +308,7 @@ func (rf *Raft) startElection() {
 		sum += ch.Sum
 		support += ch.Support
 	}
-	// fmt.Printf("VoteResult: Server%d, Term:%d,  Sum:%d Support:%d Time: %s\n", me, rf.currentTerm, sum, support, time.Now().Format("15:04:05.000"))
+	fmt.Printf("VoteResult... Server%d  Term:%d Sum:%d Support:%d Time:%s \n", me, curTerm, sum, support, time.Now().Format("15:04:05.000"))
 	rf.mu.Lock()
 	curRole := rf.role
 	rf.mu.Unlock()
@@ -325,7 +326,7 @@ func (rf *Raft) startElection() {
 		go func() {
 			for rf.sendHeartbeat() {
 				rf.RaftElectionTimeout = false
-				// fmt.Printf("heartbeating...%d Time:%s\n", me, time.Now().Format("15:04:05.000"))s
+				// fmt.Printf("Heartbeat running... Server%d Time:%s\n", me, time.Now().Format("15:04:05.000"))
 				time.Sleep(100 * time.Millisecond)
 			}
 			rf.HeartbeatCh <- 0
@@ -334,8 +335,9 @@ func (rf *Raft) startElection() {
 
 		rf.voteTimes = 0
 		<-rf.HeartbeatCh
-
 	}
+
+	rf.ElectionCh <- 0
 }
 
 func (rf *Raft) halfVote(sum, support int) (success bool) {
@@ -389,16 +391,19 @@ func (rf *Raft) killed() bool {
 func (rf *Raft) ticker() {
 	for !rf.killed() {
 		// Your code here (2A)
+		rf.mu.Lock()
 		voteFor := rf.votedFor
+		rf.mu.Unlock()
 		if rf.RaftElectionTimeout && voteFor == -1 {
-			rf.startElection()
+			go rf.startElection()
+			<-rf.ElectionCh
 		} else {
 			rf.RaftElectionTimeout = true
 			rf.InitFollower()
 		}
 		// pause for a random amount of time between 50 and 350
 		// milliseconds.
-		ms := 100 + (rand.Int63() % 300)
+		ms := 101 + (rand.Int63() % 300)
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 
 	}
@@ -423,6 +428,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	rf.RaftElectionTimeout = false
 	rf.HeartbeatCh = make(chan int)
+	rf.ElectionCh = make(chan int)
 
 	// Your initialization code here (2A, 2B, 2C).
 	rf.entries = make(map[int]LogEntry)
