@@ -201,8 +201,8 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	state := rf.role
 	rf.mu.Unlock()
 
-	fmt.Printf("RequestVote: Candidate%d term:%d, args.LastLogIndex:%d args.LastLogTerm:%d Reply%d Role is %s VotedFor: %d Term: %d, commitIndex:%d Time: %s \n",
-		args.CandidateId, args.Term, args.LastLogIndex, args.LastLogTerm, rf.me, rf.role.String(), rf.votedFor, curTerm, rf.commitIndex, time.Now().Format("15:04:05.000"))
+	// fmt.Printf("RequestVote: Candidate%d term:%d, args.LastLogIndex:%d args.LastLogTerm:%d Reply%d Role is %s VotedFor: %d Term: %d, commitIndex:%d Time: %s \n",
+	// args.CandidateId, args.Term, args.LastLogIndex, args.LastLogTerm, rf.me, rf.role.String(), rf.votedFor, curTerm, rf.commitIndex, time.Now().Format("15:04:05.000"))
 	// Your code here (2A, 2B).
 	if args.Term < curTerm || state != Followers {
 		return
@@ -274,7 +274,7 @@ func (rf *Raft) startElection() {
 		LastLogTerm:  curTerm, // No Log Now
 	}
 	rf.voteTimes++
-	fmt.Printf("StartVote: Server%d, Term:%d try %d Times,Time:%s \n", me, rf.currentTerm, rf.voteTimes, time.Now().Format("15:04:05.000"))
+	// fmt.Printf("StartVote: Server%d, Term:%d try %d Times,Time:%s \n", me, rf.currentTerm, rf.voteTimes, time.Now().Format("15:04:05.000"))
 	sum, support := 1, 1
 	voteCh := make(voteCh, len(rf.peers)-1)
 	for server := range rf.peers {
@@ -307,7 +307,7 @@ func (rf *Raft) startElection() {
 		sum += ch.Sum
 		support += ch.Support
 	}
-	fmt.Printf("VoteResult: Server%d, Term:%d,  Sum:%d Support:%d Time: %s\n", rf.me, rf.currentTerm, sum, support, time.Now().Format("15:04:05.000"))
+	// fmt.Printf("VoteResult: Server%d, Term:%d,  Sum:%d Support:%d Time: %s\n", me, rf.currentTerm, sum, support, time.Now().Format("15:04:05.000"))
 	rf.mu.Lock()
 	curRole := rf.role
 	rf.mu.Unlock()
@@ -320,22 +320,21 @@ func (rf *Raft) startElection() {
 		rf.votedFor = -1
 		rf.mu.Unlock()
 
-		fmt.Printf("Start Heartbeat... Server%d Term:%d Time:%s \n", rf.me, rf.currentTerm, time.Now().Format("15:04:05.000"))
+		fmt.Printf("Start heartbeat... Server%d Term:%d Time:%s \n", me, curTerm+1, time.Now().Format("15:04:05.000"))
 		// send first heartbeat
 		go func() {
 			for rf.sendHeartbeat() {
 				rf.RaftElectionTimeout = false
-				fmt.Printf("heartbeating...%d Time:%s\n", rf.me, time.Now().Format("15:04:05.000"))
-				time.Sleep(110 * time.Millisecond)
+				// fmt.Printf("heartbeating...%d Time:%s\n", me, time.Now().Format("15:04:05.000"))s
+				time.Sleep(100 * time.Millisecond)
 			}
 			rf.HeartbeatCh <- 0
-			fmt.Println("heartbeatEnd...", rf.me)
-
+			fmt.Printf("Stop heartbeat... Server%d Time:%s \n", me, time.Now().Format("15:04:05.000"))
 		}()
 
 		rf.voteTimes = 0
 		<-rf.HeartbeatCh
-		// fmt.Printf("Stop Heartbeat: Server%d Time:%s \n", rf.me, time.Now().Format("15:04:05.000"))
+
 	}
 }
 
@@ -399,7 +398,7 @@ func (rf *Raft) ticker() {
 		}
 		// pause for a random amount of time between 50 and 350
 		// milliseconds.
-		ms := 150 + (rand.Int63() % 300)
+		ms := 100 + (rand.Int63() % 300)
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 
 	}
