@@ -191,9 +191,9 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
+	reply.VoteGranted = true
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	reply.VoteGranted = true
 	// fmt.Printf("RequestVote... Sender%d term:%d,  Receiver%d  VotedFor: %d Term: %d state:%s Time: %s \n",
 	// 	args.CandidateId, args.Term, rf.me, rf.votedFor, rf.currentTerm, rf.state.String(), time.Now().Format("15:04:05.000"))
 	// Your code here (2A, 2B).
@@ -253,7 +253,7 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs) {
 	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
 		return
 	}
-
+	
 	if reply.Term > rf.currentTerm {
 		rf.toFollower(reply.Term)
 		return

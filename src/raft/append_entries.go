@@ -54,7 +54,7 @@ func (rf *Raft) toLeader() {
 
 	rf.initChannel()
 	rf.state = Leader
-
+	DPrintf(dInfo, "S%d become a leader", rf.me)
 	rf.infoHeartbeat()
 }
 
