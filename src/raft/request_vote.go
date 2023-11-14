@@ -70,7 +70,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 // capitalized all field names in structs passed over RPC, and
 // that the caller passes the address of the reply struct with &, not
 // the struct itself.
-func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs) {
+func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	reply := RequestVoteReply{}
 	ok := rf.peers[server].Call("Raft.RequestVote", args, &reply)
 	if !ok {
@@ -88,15 +88,16 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs) {
 	// If votes received from majority of servers: become leader
 	if reply.VoteGranted {
 		rf.voteCount++
-		if rf.voteCount == rf.majority/2+1 {
-			rf.toLeader()
+		if rf.voteMajorities() {
+			rf.becomeLeader()
 			return
 		}
 	}
 
 }
 
-func (rf *Raft) InfoRequestVote() {
+// Send RequestVote RPCs to all other servers
+func (rf *Raft) broadcastRequestVote() {
 	arg := RequestVoteArgs{
 		Term:         rf.currentTerm,
 		CandidateId:  rf.me,
@@ -107,6 +108,6 @@ func (rf *Raft) InfoRequestVote() {
 		if server == rf.me {
 			continue
 		}
-		go rf.sendRequestVote(server, &arg)
+		go rf.requestVoteRpc(server, &arg)
 	}
 }

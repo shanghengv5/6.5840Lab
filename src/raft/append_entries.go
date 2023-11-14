@@ -11,7 +11,15 @@ type AppendEntriesReply struct {
 	Success bool
 }
 
-// Invoked by leader
+// 1. Reply false if term < currentTerm (§5.1)
+// 2. Reply false if log doesn’t contain an entry at prevLogIndex
+// whose term matches prevLogTerm (§5.3)
+// 3. If an existing entry conflicts with a new one (same index
+// but different terms), delete the existing entry and all that
+// follow it (§5.3)
+// 4. Append any new entries not already in the log
+// 5. If leaderCommit > commitIndex, set commitIndex =
+// min(leaderCommit, index of last new entry)
 func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply) {
 	reply.Success = true
 	reply.Term = args.Term
@@ -28,6 +36,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// If AppendEntries RPC received from new leader: convert to follower
 	rf.currentTerm = args.Term
 	rf.initFollower()
+	
 	rf.sendToChannel(rf.heartbeatCh, true)
 	// it is a heartbeat
 	if args.Entries == nil {
@@ -48,7 +57,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
-func (rf *Raft) infoHeartbeat() {
+func (rf *Raft) broadcastAppendEntries() {
 	args := AppendEntriesArg{
 		LeaderId: rf.me,
 		Term:     rf.currentTerm,
@@ -59,12 +68,11 @@ func (rf *Raft) infoHeartbeat() {
 			continue
 		}
 		DPrintf(dLeader, "S%d send => %d", rf.me, server)
-		go rf.sendAppendEntry(server, &args)
+		go rf.appendEntryRpc(server, &args)
 	}
-
 }
 
-func (rf *Raft) sendAppendEntry(server int, args *AppendEntriesArg) {
+func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {

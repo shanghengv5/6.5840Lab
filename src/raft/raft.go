@@ -147,16 +147,12 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 
 }
 
-
-
 func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	select {
 	case ch <- b:
 	default:
 	}
 }
-
-
 
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
@@ -216,7 +212,7 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(300 * time.Millisecond):
 				rf.mu.Lock()
-				rf.infoHeartbeat()
+				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
 			}
 		case Follower:
