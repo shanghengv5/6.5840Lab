@@ -50,23 +50,6 @@ type ApplyMsg struct {
 	SnapshotIndex int
 }
 
-type State int
-
-const (
-	Follower State = iota
-	Candidate
-	Leader
-)
-
-func (r State) String() string {
-	maps := map[State]string{
-		Follower:  "Follower",
-		Candidate: "Candidate",
-		Leader:    "Leader",
-	}
-	return maps[r]
-}
-
 // A log entry implement
 type LogEntry struct {
 	Term int
@@ -87,10 +70,10 @@ type Raft struct {
 	// state a Raft server must maintain.
 
 	// Channel
-	convertFollowerCh chan bool
-	heartbeatCh       chan bool
-	votedAlreadyCh    chan bool
-	convertLeaderCh   chan bool
+	heartbeatCh        chan bool
+	convertLeaderCh    chan bool
+	convertFollowerCh  chan bool
+	convertCandidateCh chan bool
 	// ElectionCh   chan bool
 
 	majority  int
@@ -164,23 +147,7 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 
 }
 
-// example RequestVote RPC arguments structure.
-// field names must start with capital letters!
-type RequestVoteArgs struct {
-	// Your data here (2A, 2B).
-	Term         int
-	CandidateId  int
-	LastLogIndex int
-	LastLogTerm  int
-}
 
-// example RequestVote RPC reply structure.
-// field names must start with capital letters!
-type RequestVoteReply struct {
-	// Your data here (2A).
-	Term        int
-	VoteGranted bool
-}
 
 func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	select {
@@ -189,117 +156,7 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	}
 }
 
-// example RequestVote RPC handler.
-func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	reply.VoteGranted = true
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	// fmt.Printf("RequestVote... Sender%d term:%d,  Receiver%d  VotedFor: %d Term: %d state:%s Time: %s \n",
-	// 	args.CandidateId, args.Term, rf.me, rf.votedFor, rf.currentTerm, rf.state.String(), time.Now().Format("15:04:05.000"))
-	// Your code here (2A, 2B).
-	if args.Term < rf.currentTerm {
-		reply.Term = rf.currentTerm
-		reply.VoteGranted = false
-		return
-	}
-	if args.Term > rf.currentTerm {
-		rf.toFollower(args.Term)
-	}
 
-	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
-		rf.votedFor = args.CandidateId
-		reply.Term = rf.currentTerm
-		rf.sendToChannel(rf.votedAlreadyCh, true)
-		rf.state = Candidate
-	}
-
-}
-
-// example code to send a RequestVote RPC to a server.
-// server is the index of the target server in rf.peers[].
-// expects RPC arguments in args.
-// fills in *reply with RPC reply, so caller should
-// pass &reply.
-// the types of the args and reply passed to Call() must be
-// the same as the types of the arguments declared in the
-// handler function (including whether they are pointers).
-//
-// The labrpc package simulates a lossy network, in which servers
-// may be unreachable, and in which requests and replies may be lost.
-// Call() sends a request and waits for a reply. If a reply arrives
-// within a timeout interval, Call() returns true; otherwise
-// Call() returns false. Thus Call() may not return for a while.
-// A false return can be caused by a dead server, a live server that
-// can't be reached, a lost request, or a lost reply.
-//
-// Call() is guaranteed to return (perhaps after a delay) *except* if the
-// handler function on the server side does not return.  Thus there
-// is no need to implement your own timeouts around Call().
-//
-// look at the comments in ../labrpc/labrpc.go for more details.
-//
-// if you're having trouble getting RPC to work, check that you've
-// capitalized all field names in structs passed over RPC, and
-// that the caller passes the address of the reply struct with &, not
-// the struct itself.
-func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs) {
-	reply := RequestVoteReply{}
-	ok := rf.peers[server].Call("Raft.RequestVote", args, &reply)
-	if !ok {
-		return
-	}
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
-		return
-	}
-	
-	if reply.Term > rf.currentTerm {
-		rf.toFollower(reply.Term)
-		return
-	}
-
-	if reply.VoteGranted {
-		rf.voteCount++
-		if rf.voteCount == rf.majority/2+1 {
-			rf.sendToChannel(rf.convertLeaderCh, true)
-			return
-		}
-	}
-
-}
-
-func (rf *Raft) InfoRequestVote() {
-	arg := RequestVoteArgs{
-		Term:         rf.currentTerm,
-		CandidateId:  rf.me,
-		LastLogIndex: 0,
-		LastLogTerm:  0,
-	}
-	for server := range rf.peers {
-		if server == rf.me {
-			continue
-		}
-		go rf.sendRequestVote(server, &arg)
-	}
-}
-
-func (rf *Raft) startElection(state State) {
-	// If already vote
-	if rf.state != state {
-		return
-	}
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-
-	rf.state = Candidate
-	rf.votedFor = rf.me
-	rf.currentTerm++
-	rf.voteCount = 1
-	// fmt.Printf("StartElection...%d currentTerm:%d Time:%s\n", rf.me, rf.currentTerm, time.Now().Format(time.StampMilli))
-	rf.InfoRequestVote()
-
-}
 
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
@@ -343,7 +200,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := 240 + (rand.Int63() % 300)
+	ms := 340 + (rand.Int63() % 300)
 	return time.Duration(ms) * time.Millisecond
 }
 
@@ -357,7 +214,7 @@ func (rf *Raft) ticker() {
 		case Leader:
 			select {
 			case <-rf.convertFollowerCh:
-			case <-time.After(200 * time.Millisecond):
+			case <-time.After(300 * time.Millisecond):
 				rf.mu.Lock()
 				rf.infoHeartbeat()
 				rf.mu.Unlock()
@@ -365,29 +222,23 @@ func (rf *Raft) ticker() {
 		case Follower:
 			select {
 			case <-rf.heartbeatCh:
-			case <-rf.votedAlreadyCh:
+			case <-rf.convertCandidateCh:
 			case <-time.After(rf.waitElectionTimeOut()):
+				// If election timeout elapses: start new election
 				rf.startElection(state)
 			}
 		case Candidate:
 			select {
 			case <-rf.convertFollowerCh:
 			case <-rf.convertLeaderCh:
-				rf.toLeader()
 			case <-time.After(rf.waitElectionTimeOut()):
+				// If election timeout elapses: start new election
 				rf.startElection(state)
 			}
 		}
 
 	}
 
-}
-
-func (rf *Raft) initChannel() {
-	rf.heartbeatCh = make(chan bool)
-	rf.convertFollowerCh = make(chan bool)
-	rf.convertLeaderCh = make(chan bool)
-	rf.votedAlreadyCh = make(chan bool)
 }
 
 // the service or tester wants to create a Raft server. the ports
@@ -405,10 +256,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.peers = peers
 	rf.persister = persister
 	rf.me = me
-	rf.votedFor = -1
 	rf.majority = len(rf.peers)
-	rf.state = Follower
-
+	rf.initFollower()
 	rf.initChannel()
 	// Your initialization code here (2A, 2B, 2C).
 	rf.entries = make(map[int]LogEntry)
@@ -420,4 +269,17 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	go rf.ticker()
 
 	return rf
+}
+
+func (rf *Raft) initChannel() {
+	rf.heartbeatCh = make(chan bool)
+	rf.convertFollowerCh = make(chan bool)
+	rf.convertLeaderCh = make(chan bool)
+	rf.convertCandidateCh = make(chan bool)
+}
+
+func (rf *Raft) initFollower() {
+	rf.Convert(Follower)
+	rf.votedFor = -1
+	rf.voteCount = 0
 }

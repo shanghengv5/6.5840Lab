@@ -14,20 +14,21 @@ type AppendEntriesReply struct {
 // Invoked by leader
 func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply) {
 	reply.Success = true
+	reply.Term = args.Term
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	// fmt.Printf("AppendEntries: Leader%d Term:%d, Follower%d Term:%d Role is %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.state.String())
+	DPrintf(dClient, "Leader%d Term:%d Client%d Term%d %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.state.String())
 
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.Success = false
 		return
 	}
-
-	rf.toFollower(args.Term)
+	// If AppendEntries RPC received from new leader: convert to follower
+	rf.currentTerm = args.Term
+	rf.initFollower()
 	rf.sendToChannel(rf.heartbeatCh, true)
-
 	// it is a heartbeat
 	if args.Entries == nil {
 		return
@@ -45,20 +46,8 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 }
 
-func (rf *Raft) toLeader() {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	if rf.state != Candidate {
-		return
-	}
-
-	rf.initChannel()
-	rf.state = Leader
-	DPrintf(dInfo, "S%d become a leader", rf.me)
-	rf.infoHeartbeat()
-}
-
-// send a periodically heartbeat
+// (heartbeat) to each server; repeat during idle periods to
+// prevent election timeouts (§5.2)
 func (rf *Raft) infoHeartbeat() {
 	args := AppendEntriesArg{
 		LeaderId: rf.me,
@@ -69,20 +58,8 @@ func (rf *Raft) infoHeartbeat() {
 		if server == rf.me {
 			continue
 		}
+		DPrintf(dLeader, "S%d send => %d", rf.me, server)
 		go rf.sendAppendEntry(server, &args)
-	}
-
-}
-
-func (rf *Raft) toFollower(term int) {
-	state := rf.state
-	rf.state = Follower
-	rf.currentTerm = term
-	rf.votedFor = -1
-	rf.voteCount = 0
-
-	if state != Follower {
-		rf.sendToChannel(rf.convertFollowerCh, true)
 	}
 
 }
@@ -95,14 +72,12 @@ func (rf *Raft) sendAppendEntry(server int, args *AppendEntriesArg) {
 	}
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-
 	// Ignore invalid response
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
 		return
 	}
 
-	if reply.Term > rf.currentTerm {
-		rf.toFollower(reply.Term)
+	if rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
 
