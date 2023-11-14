@@ -97,6 +97,8 @@ type Raft struct {
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	return rf.currentTerm, rf.state == Leader
 }
 
@@ -207,14 +209,6 @@ func (rf *Raft) ticker() {
 		state := rf.state
 		rf.mu.Unlock()
 		switch state {
-		case Leader:
-			select {
-			case <-rf.convertFollowerCh:
-			case <-time.After(300 * time.Millisecond):
-				rf.mu.Lock()
-				rf.broadcastAppendEntries()
-				rf.mu.Unlock()
-			}
 		case Follower:
 			select {
 			case <-rf.heartbeatCh:
@@ -230,6 +224,14 @@ func (rf *Raft) ticker() {
 			case <-time.After(rf.waitElectionTimeOut()):
 				// If election timeout elapses: start new election
 				rf.startElection(state)
+			}
+		case Leader:
+			select {
+			case <-rf.convertFollowerCh:
+			case <-time.After(300 * time.Millisecond):
+				rf.mu.Lock()
+				rf.broadcastAppendEntries()
+				rf.mu.Unlock()
 			}
 		}
 
@@ -249,6 +251,7 @@ func (rf *Raft) ticker() {
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
+
 	rf.peers = peers
 	rf.persister = persister
 	rf.me = me

@@ -78,6 +78,7 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	}
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+
 	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
 		return
 	}
