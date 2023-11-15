@@ -65,6 +65,17 @@ func (rf *Raft) becomeLeader() {
 	}
 	DPrintf(dLeader, "S%d become a leader", rf.me)
 	rf.Convert(Leader)
+	// (Reinitialized after election)
+	for server := range rf.peers {
+		//for each server, index of the next log entry
+		// to send to that server (initialized to leader
+		// 	last log index + 1)
+		rf.nextIndex[server] = rf.commitIndex + 1
+		//for each server, index of highest log entry
+		// known to be replicated on server
+		// (initialized to 0, increases monotonically)
+		rf.matchIndex[server] = 0
+	}
 	rf.broadcastHeartbeat()
 }
 

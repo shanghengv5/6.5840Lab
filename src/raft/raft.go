@@ -53,6 +53,7 @@ type ApplyMsg struct {
 // A log entry implement
 type LogEntry struct {
 	Term int
+	Msg  ApplyMsg
 }
 
 // A Go object implementing a single Raft peer.
@@ -74,7 +75,8 @@ type Raft struct {
 	convertLeaderCh    chan bool
 	convertFollowerCh  chan bool
 	convertCandidateCh chan bool
-	// ElectionCh   chan bool
+
+	applyCh chan ApplyMsg
 
 	majority  int
 	voteCount int
@@ -82,8 +84,7 @@ type Raft struct {
 	// Persistent state on all servers
 	currentTerm int
 	votedFor    int
-
-	entries map[int]LogEntry
+	Log         map[int]LogEntry
 
 	// Volatile state on all servers
 	commitIndex int
@@ -168,14 +169,18 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // if it's ever committed. the second return value is the current
 // term. the third return value is true if this server believes it is
 // the leader.
-func (rf *Raft) Start(command interface{}) (int, int, bool) {
-	index := -1
-	term := -1
-	isLeader := true
-
+func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+	index = rf.commitIndex
+	term = rf.currentTerm
+	isLeader = rf.state == Leader
 	// Your code here (2B).
+	if !isLeader {
+		return
+	}
 
-	return index, term, isLeader
+	return
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -234,7 +239,6 @@ func (rf *Raft) ticker() {
 				rf.mu.Unlock()
 			}
 		}
-
 	}
 
 }
@@ -251,16 +255,18 @@ func (rf *Raft) ticker() {
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
-
 	rf.peers = peers
 	rf.persister = persister
 	rf.me = me
+
+	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)
+	rf.Log = make(map[int]LogEntry)
 	rf.initFollower()
 	rf.initChannel()
-	// Your initialization code here (2A, 2B, 2C).
-	rf.entries = make(map[int]LogEntry)
-
+	rf.applyCh = applyCh
+	rf.nextIndex = make([]int, rf.majority)
+	rf.matchIndex = make([]int, rf.majority)
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 

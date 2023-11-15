@@ -2,7 +2,7 @@ package raft
 
 type AppendEntriesArg struct {
 	Term, LeaderId, PrevLogIndex, PrevLogTerm int
-	Entries                                   map[int]LogEntry
+	Log                                       map[int]LogEntry
 	LeaderCommit                              int
 }
 
@@ -36,21 +36,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// If AppendEntries RPC received from new leader: convert to follower
 	rf.currentTerm = args.Term
 	rf.initFollower()
-	
+
 	rf.sendToChannel(rf.heartbeatCh, true)
 	// it is a heartbeat
-	if args.Entries == nil {
+	if args.Log == nil {
 		return
-	}
-	entry, ok := rf.entries[args.PrevLogIndex]
-	if !ok || entry.Term != args.PrevLogTerm {
-		reply.Success = false
-		return
-	}
-	newEntry := args.Entries[args.LeaderCommit]
-	rf.entries[args.LeaderCommit] = newEntry
-	if args.LeaderCommit > rf.commitIndex {
-		rf.commitIndex = args.LeaderCommit
 	}
 
 }
@@ -61,7 +51,7 @@ func (rf *Raft) broadcastAppendEntries() {
 	args := AppendEntriesArg{
 		LeaderId: rf.me,
 		Term:     rf.currentTerm,
-		Entries:  nil,
+		Log:      nil,
 	}
 	for server := range rf.peers {
 		if server == rf.me {
