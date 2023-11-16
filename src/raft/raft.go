@@ -29,6 +29,8 @@ import (
 	"6.5840/labrpc"
 )
 
+const HEARTBEAT = 300
+
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
 // tester) on the same server, via the applyCh passed to Make(). set
@@ -38,6 +40,7 @@ import (
 // in part 2D you'll want to send other kinds of messages (e.g.,
 // snapshots) on the applyCh, but set CommandValid to false for these
 // other uses.
+
 type ApplyMsg struct {
 	CommandValid bool
 	Command      interface{}
@@ -84,7 +87,7 @@ type Raft struct {
 	// Persistent state on all servers
 	currentTerm int
 	votedFor    int
-	Log         map[int]LogEntry
+	Logs        []LogEntry
 
 	// Volatile state on all servers
 	commitIndex int
@@ -203,7 +206,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := 340 + (rand.Int63() % 300)
+	ms := HEARTBEAT + 10 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 
@@ -233,7 +236,7 @@ func (rf *Raft) ticker() {
 		case Leader:
 			select {
 			case <-rf.convertFollowerCh:
-			case <-time.After(300 * time.Millisecond):
+			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
@@ -261,7 +264,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)
-	rf.Log = make(map[int]LogEntry)
+	rf.Logs = append(rf.Logs, LogEntry{Term: 0})
 	rf.initFollower()
 	rf.initChannel()
 	rf.applyCh = applyCh
