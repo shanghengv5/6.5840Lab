@@ -95,9 +95,20 @@ func (rf *Raft) becomeLeader() {
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
 func (rf *Raft) broadcastHeartbeat() {
-	rf.broadcastAppendEntries()
+	args := AppendEntriesArg{
+		LeaderId: rf.me,
+		Term:     rf.currentTerm,
+		Logs:     nil,
+	}
+	for server := range rf.peers {
+		if server == rf.me {
+			continue
+		}
+		DPrintf(dLeader, "S%d send => %d", rf.me, server)
+		go rf.appendEntryRpc(server, &args)
+	}
 }
 
-func (rf *Raft) commandFromClient() {
-	// AppendEntry Log
+func (rf *Raft) getLastLogIndex() int {
+	return len(rf.Logs) - 1
 }

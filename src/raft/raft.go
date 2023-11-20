@@ -53,12 +53,6 @@ type ApplyMsg struct {
 	SnapshotIndex int
 }
 
-// A log entry implement
-type LogEntry struct {
-	Term int
-	Msg  ApplyMsg
-}
-
 // A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
@@ -90,11 +84,23 @@ type Raft struct {
 	Logs        []LogEntry
 
 	// Volatile state on all servers
+	// index of highest log entry known to be
+	// committed (initialized to 0, increases
+	// monotonically)
 	commitIndex int
+	// index of highest log entry applied to state
+	// machine (initialized to 0, increases
+	// monotonically)
 	lastApplied int
 
 	// Volatile state on leaders
-	nextIndex  []int
+	// for each server, index of the next log entry
+	// to send to that server (initialized to leader
+	// last log index + 1)
+	nextIndex []int
+	// for each server, index of highest log entry
+	// known to be replicated on server
+	// (initialized to 0, increases monotonically)
 	matchIndex []int
 }
 
@@ -183,7 +189,21 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 		return
 	}
 
+	//If command received from client: append entry to local log,
+	// respond after entry applied to state machine
+	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
+	rf.broadcastAppendEntries()
+	index = len(rf.Logs)
 	return
+}
+
+func (rf *Raft) applyStateMachine(command interface{}, index int) {
+	msg := ApplyMsg{
+		Command:      command,
+		CommandValid: true,
+		CommandIndex: index,
+	}
+	rf.applyCh <- msg
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -238,7 +258,7 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
-				rf.broadcastAppendEntries()
+				rf.broadcastHeartbeat()
 				rf.mu.Unlock()
 			}
 		}

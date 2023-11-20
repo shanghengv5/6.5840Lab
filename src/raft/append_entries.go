@@ -2,13 +2,19 @@ package raft
 
 type AppendEntriesArg struct {
 	Term, LeaderId, PrevLogIndex, PrevLogTerm int
-	Logs                                      map[int]LogEntry
+	Logs                                      []LogEntry
 	LeaderCommit                              int
 }
 
 type AppendEntriesReply struct {
 	Term    int
 	Success bool
+}
+
+// A log entry implement
+type LogEntry struct {
+	Term    int
+	Command interface{}
 }
 
 // 1. Reply false if term < currentTerm (§5.1)
@@ -42,23 +48,45 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	if args.Logs == nil {
 		return
 	}
+	// Reply false if log doesn’t contain an entry at prevLogIndex
+	// whose term matches prevLogTerm
+	if args.PrevLogIndex >= len(rf.Logs) ||
+		rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
+		reply.Success = false
+		reply.Term = rf.currentTerm
+		return
+	}
+	//If an existing entry conflicts with a new one (same index
+	// but different terms), delete the existing entry and all that
+	// follow it (§5.3)
 
 }
 
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	args := AppendEntriesArg{
-		LeaderId: rf.me,
-		Term:     rf.currentTerm,
-		Logs:     nil,
-	}
+	lastLogIndex := rf.getLastLogIndex()
+
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
 		}
 		DPrintf(dLeader, "S%d send => %d", rf.me, server)
-		go rf.appendEntryRpc(server, &args)
+		nextIndex := rf.nextIndex[server]
+		// If last log index ≥ nextIndex for a follower: send
+		// AppendEntries RPC with log entries starting at nextIndex
+		if lastLogIndex >= nextIndex {
+			args := AppendEntriesArg{
+				LeaderId:     rf.me,
+				Term:         rf.currentTerm,
+				LeaderCommit: rf.commitIndex,
+				Logs:         rf.Logs[nextIndex:],
+				PrevLogIndex: nextIndex - 1,
+				PrevLogTerm:  rf.Logs[nextIndex-1].Term,
+			}
+			go rf.appendEntryRpc(server, &args)
+		}
+
 	}
 }
 
@@ -74,9 +102,46 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
 		return
 	}
-
 	if rf.aboveCurrentTerm(reply.Term) {
 		return
+	}
+	if reply.Success {
+		// If successful: update nextIndex and matchIndex for
+		// follower (§5.3)
+		rf.nextIndex[server] = args.PrevLogIndex + 1
+		rf.matchIndex[server] = args.PrevLogIndex + 1
+	} else {
+		// If AppendEntries fails because of log inconsistency:
+		// decrement nextIndex and retry (§5.3)
+		nextIndex := args.PrevLogIndex
+		rf.nextIndex[server] = nextIndex
+
+		args.Logs = args.Logs[nextIndex:]
+		args.PrevLogIndex = nextIndex - 1
+		args.PrevLogTerm = rf.Logs[nextIndex-1].Term
+		go rf.appendEntryRpc(server, args)
+	}
+
+	// If there exists an N such that N > commitIndex, a majority
+	// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+	// set commitIndex = N (§5.3, §5.4).
+	N := args.LeaderCommit
+
+	if N > rf.commitIndex {
+		newNMaps := make(map[int]int, 0)
+		for _, mI := range rf.matchIndex {
+			if mI >= N && rf.Logs[mI].Term == args.Term {
+				newNMaps[mI]++
+			}
+		}
+		for newN, voteCount := range newNMaps {
+			if voteCount >= rf.majority/2+1 && N > newN {
+				N = newN
+			}
+		}
+		
+		rf.commitIndex = N
+
 	}
 
 }
