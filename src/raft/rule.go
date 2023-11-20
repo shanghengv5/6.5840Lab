@@ -1,8 +1,28 @@
 package raft
 
 //	All Servers:
+//
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
+func (rf *Raft) commitIndexAboveLastApplied() {
+	for i := rf.lastApplied + 1; i <= rf.commitIndex; i++ {
+		rf.applyStateMachine(i)
+	}
+}
+
+func (rf *Raft) applyStateMachine(i int) {
+	rf.lastApplied = i
+	go func(i int) {
+		msg := ApplyMsg{
+			Command:      rf.Logs[i].Command,
+			CommandValid: true,
+			CommandIndex: i,
+		}
+		rf.applyCh <- msg
+	}(i)
+
+}
+
 // • If RPC request or response contains term T > currentTerm:
 // set currentTerm = T, convert to follower (§5.1)
 
@@ -76,7 +96,7 @@ func (rf *Raft) becomeLeader() {
 		// (initialized to 0, increases monotonically)
 		rf.matchIndex[server] = 0
 	}
-	rf.broadcastHeartbeat()
+	rf.broadcastAppendEntries()
 }
 
 // Leaders:
@@ -94,20 +114,6 @@ func (rf *Raft) becomeLeader() {
 // • If there exists an N such that N > commitIndex, a majority
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
-func (rf *Raft) broadcastHeartbeat() {
-	args := AppendEntriesArg{
-		LeaderId: rf.me,
-		Term:     rf.currentTerm,
-		Logs:     nil,
-	}
-	for server := range rf.peers {
-		if server == rf.me {
-			continue
-		}
-		DPrintf(dLeader, "S%d send => %d", rf.me, server)
-		go rf.appendEntryRpc(server, &args)
-	}
-}
 
 func (rf *Raft) getLastLogIndex() int {
 	return len(rf.Logs) - 1

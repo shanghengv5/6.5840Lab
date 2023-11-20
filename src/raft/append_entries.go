@@ -32,7 +32,6 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	DPrintf(dClient, "Leader%d Term:%d Client%d Term%d %s\n", args.LeaderId, args.Term, rf.me, rf.currentTerm, rf.state.String())
 
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
@@ -56,37 +55,44 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		reply.Term = rf.currentTerm
 		return
 	}
+	newLogIndex := args.PrevLogIndex + 1
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
+	if len(rf.Logs) == newLogIndex+1 &&
+		rf.Logs[newLogIndex].Term != args.Logs[0].Term {
+		rf.Logs = append(rf.Logs[:len(rf.Logs)-1], args.Logs...)
+	} else if len(rf.Logs) == newLogIndex {
+		rf.Logs = append(rf.Logs, args.Logs...)
+	}
 
+	if args.LeaderCommit > rf.commitIndex {
+		rf.commitIndex = args.LeaderCommit
+	}
+
+	DPrintf(dClient, "Leader%d  Client%d  CommitIndex:%d Logs:%v", args.LeaderId, rf.me, rf.commitIndex, rf.Logs)
 }
 
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	lastLogIndex := rf.getLastLogIndex()
-
+	DPrintf(dLeader, "S%d  CommitIndex:%d", rf.me, rf.commitIndex)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
 		}
-		DPrintf(dLeader, "S%d send => %d", rf.me, server)
-		nextIndex := rf.nextIndex[server]
 		// If last log index ≥ nextIndex for a follower: send
+		nextIndex := rf.nextIndex[server]
 		// AppendEntries RPC with log entries starting at nextIndex
-		if lastLogIndex >= nextIndex {
-			args := AppendEntriesArg{
-				LeaderId:     rf.me,
-				Term:         rf.currentTerm,
-				LeaderCommit: rf.commitIndex,
-				Logs:         rf.Logs[nextIndex:],
-				PrevLogIndex: nextIndex - 1,
-				PrevLogTerm:  rf.Logs[nextIndex-1].Term,
-			}
-			go rf.appendEntryRpc(server, &args)
+		args := AppendEntriesArg{
+			LeaderId:     rf.me,
+			Term:         rf.currentTerm,
+			LeaderCommit: rf.commitIndex,
+			Logs:         rf.Logs[nextIndex:],
+			PrevLogIndex: nextIndex - 1,
+			PrevLogTerm:  rf.Logs[nextIndex-1].Term,
 		}
-
+		go rf.appendEntryRpc(server, &args)
 	}
 }
 
@@ -127,21 +133,22 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	// set commitIndex = N (§5.3, §5.4).
 	N := args.LeaderCommit
 
-	if N > rf.commitIndex {
-		newNMaps := make(map[int]int, 0)
-		for _, mI := range rf.matchIndex {
-			if mI >= N && rf.Logs[mI].Term == args.Term {
-				newNMaps[mI]++
-			}
+	newNMaps := make(map[int]int, 0)
+	for _, mI := range rf.matchIndex {
+		if mI < len(rf.Logs) &&
+			mI >= N &&
+			rf.Logs[mI].Term == args.Term {
+			newNMaps[mI]++
 		}
-		for newN, voteCount := range newNMaps {
-			if voteCount >= rf.majority/2+1 && N > newN {
-				N = newN
-			}
+	}
+	for newN, voteCount := range newNMaps {
+		if voteCount >= rf.majority/2+1 && newN > N {
+			N = newN
 		}
-		
-		rf.commitIndex = N
-
 	}
 
+	if N > rf.commitIndex {
+		rf.commitIndex = N
+	}
+	// DPrintf(dLeader, "N %d matchIndex %v newNMaps %v Logs %v", N, rf.matchIndex, newNMaps, rf.Logs)
 }

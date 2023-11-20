@@ -66,7 +66,6 @@ type Raft struct {
 	state State
 
 	// state a Raft server must maintain.
-
 	// Channel
 	heartbeatCh        chan bool
 	convertLeaderCh    chan bool
@@ -188,22 +187,16 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	if !isLeader {
 		return
 	}
-
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
-	rf.broadcastAppendEntries()
-	index = len(rf.Logs)
-	return
-}
+	index = len(rf.Logs) - 1
+	rf.matchIndex[rf.me] = index
+	rf.nextIndex[rf.me] = index + 1
 
-func (rf *Raft) applyStateMachine(command interface{}, index int) {
-	msg := ApplyMsg{
-		Command:      command,
-		CommandValid: true,
-		CommandIndex: index,
-	}
-	rf.applyCh <- msg
+	rf.broadcastAppendEntries()
+
+	return
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -258,7 +251,7 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
-				rf.broadcastHeartbeat()
+				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
 			}
 		}
