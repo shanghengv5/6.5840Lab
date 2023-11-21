@@ -144,6 +144,7 @@ func (cfg *config) crash1(i int) {
 func (cfg *config) checkLogs(i int, m ApplyMsg) (string, bool) {
 	err_msg := ""
 	v := m.Command
+
 	for j := 0; j < len(cfg.logs); j++ {
 		if old, oldok := cfg.logs[j][m.CommandIndex]; oldok && old != v {
 			log.Printf("%v: log %v; server %v\n", i, cfg.logs[i], cfg.logs[j])
@@ -157,6 +158,7 @@ func (cfg *config) checkLogs(i int, m ApplyMsg) (string, bool) {
 	if m.CommandIndex > cfg.maxIndex {
 		cfg.maxIndex = m.CommandIndex
 	}
+	// fmt.Printf("commit index=%v server=%v %v Logs:%v\n", m.CommandIndex, i, v, cfg.logs[i])
 	return err_msg, prevok
 }
 
@@ -500,7 +502,7 @@ func (cfg *config) nCommitted(index int) (int, interface{}) {
 		cfg.mu.Lock()
 		cmd1, ok := cfg.logs[i][index]
 		cfg.mu.Unlock()
-
+		// fmt.Printf("index %v cmd1 %v ok %v \n", index, cmd1, ok)
 		if ok {
 			if count > 0 && cmd != cmd1 {
 				cfg.t.Fatalf("committed values do not match: index %v, %v, %v",
@@ -572,6 +574,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			cfg.mu.Unlock()
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
+				fmt.Printf("S%d => index %d", si, index1)
 				if ok {
 					index = index1
 					break

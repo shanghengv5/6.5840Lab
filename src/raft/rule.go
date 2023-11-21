@@ -12,9 +12,9 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 
 func (rf *Raft) applyStateMachine() {
 	msg := ApplyMsg{
-		Command:      rf.Logs[rf.lastApplied].Command,
+		Command:      rf.Logs[rf.lastApplied+1].Command,
 		CommandValid: true,
-		CommandIndex: rf.lastApplied,
+		CommandIndex: rf.lastApplied + 1,
 	}
 	DPrintf(dInfo, "S%d ApplyMsg %v", rf.me, msg)
 	rf.applyCh <- msg
