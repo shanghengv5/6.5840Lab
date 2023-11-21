@@ -16,7 +16,7 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 }
 
 func (rf *Raft) applyStateMachine(msg ApplyMsg) {
-	DPrintf(dInfo, "S%d ApplyMsg %v", rf.me, msg)
+	// DPrintf(dApply, "S%d  %v", rf.me, msg)
 	rf.applyCh <- msg
 }
 
@@ -80,8 +80,9 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader", rf.me)
+	DPrintf(dLeader, "S%d become a leader commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
 	rf.Convert(Leader)
+
 	// (Reinitialized after election)
 	for server := range rf.peers {
 		//for each server, index of the next log entry

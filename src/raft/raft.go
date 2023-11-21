@@ -189,15 +189,13 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 		return
 	}
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
-	DPrintf(dCommit, "S%d commitIndex%d %s", rf.me, rf.commitIndex, rf.state)
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
-
 	index = len(rf.Logs) - 1
 	rf.matchIndex[rf.me] = index
 	rf.nextIndex[rf.me] = index + 1
 	rf.broadcastAppendEntries()
-
+	DPrintf(dCommit, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	return
 }
 
@@ -230,6 +228,7 @@ func (rf *Raft) ticker() {
 		// Your code here (2A)
 		rf.mu.Lock()
 		state := rf.state
+		rf.commitIndexAboveLastApplied()
 		rf.mu.Unlock()
 		switch state {
 		case Follower:

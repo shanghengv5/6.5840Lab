@@ -360,7 +360,7 @@ func (cfg *config) cleanup() {
 
 // attach server i to the net.
 func (cfg *config) connect(i int) {
-	DPrintf(dConnect, "connect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
+	DPrintf(dConnect, "connect(%d)\n", i)
 
 	cfg.connected[i] = true
 
@@ -383,7 +383,7 @@ func (cfg *config) connect(i int) {
 
 // detach server i from the net.
 func (cfg *config) disconnect(i int) {
-	DPrintf(dDisConnect, "disconnect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
+	DPrintf(dDisConnect, "disconnect(%d)\n", i)
 
 	cfg.connected[i] = false
 
