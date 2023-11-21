@@ -148,7 +148,6 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 
 	if N > rf.commitIndex {
 		rf.commitIndex = N
-		rf.sendToChannel(rf.commitIndexCh, true)
 		rf.commitIndexAboveLastApplied()
 	}
 	// DPrintf(dLeader, "client %d args%v ", server, args)
