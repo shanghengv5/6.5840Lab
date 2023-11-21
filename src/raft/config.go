@@ -360,7 +360,7 @@ func (cfg *config) cleanup() {
 
 // attach server i to the net.
 func (cfg *config) connect(i int) {
-	// fmt.Printf("connect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
+	DPrintf(dConnect, "connect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
 
 	cfg.connected[i] = true
 
@@ -383,7 +383,7 @@ func (cfg *config) connect(i int) {
 
 // detach server i from the net.
 func (cfg *config) disconnect(i int) {
-	// fmt.Printf("disconnect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
+	DPrintf(dDisConnect, "disconnect(%d) %s\n", i, time.Now().Format("15:04:05.000"))
 
 	cfg.connected[i] = false
 
@@ -574,7 +574,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			cfg.mu.Unlock()
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
-				DPrintf(dTest, "S%d => index1 %d isLeader:%v\n", starts, index1, ok)
+				// DPrintf(dTest, "S%d => index1 %d isLeader:%v\n", starts, index1, ok)
 				if ok {
 					index = index1
 					break

@@ -16,10 +16,8 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 }
 
 func (rf *Raft) applyStateMachine(msg ApplyMsg) {
-
 	DPrintf(dInfo, "S%d ApplyMsg %v", rf.me, msg)
 	rf.applyCh <- msg
-
 }
 
 // • If RPC request or response contains term T > currentTerm:
@@ -71,7 +69,7 @@ func (rf *Raft) startElection(fromState State) {
 	rf.voteCount = 1
 
 	rf.broadcastRequestVote()
-	DPrintf(dVote, "S%d fromState %s start election", rf.me, fromState)
+	// DPrintf(dVote, "S%d fromState %s start election", rf.me, fromState)
 }
 
 func (rf *Raft) voteMajorities() bool {

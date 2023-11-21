@@ -192,11 +192,14 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	DPrintf(dCommit, "S%d commitIndex%d %s", rf.me, rf.commitIndex, rf.state)
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
+	rf.mu.Lock()
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
 	newIndex := len(rf.Logs) - 1
 	rf.matchIndex[rf.me] = newIndex
 	rf.nextIndex[rf.me] = newIndex + 1
 	rf.broadcastAppendEntries()
+	rf.mu.Unlock()
+
 	<-rf.commitIndexCh
 
 	rf.mu.Lock()
@@ -260,7 +263,7 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
-				DPrintf(dTimer, "S%d heartbeat", rf.me)
+				// DPrintf(dTimer, "S%d heartbeat", rf.me)
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
 			}

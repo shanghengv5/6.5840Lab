@@ -72,7 +72,9 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 // the struct itself.
 func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	reply := RequestVoteReply{}
+
 	ok := rf.peers[server].Call("Raft.RequestVote", args, &reply)
+	// DPrintf(dVote, "S%d VoteResult voteGranted%v voteCount:%d ok:%v", server, reply.VoteGranted, rf.voteCount, ok)
 	if !ok {
 		return
 	}
