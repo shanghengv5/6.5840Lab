@@ -69,14 +69,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	if args.LeaderCommit > rf.commitIndex {
 		rf.commitIndex = args.LeaderCommit
 	}
+	// DPrintf(dClient, "Leader%d  Client%d  CommitIndex:%d AppliesIndex:%d Logs:%v", args.LeaderId, rf.me, rf.commitIndex, rf.lastApplied, rf.Logs)
+	rf.commitIndexAboveLastApplied()
 
-	DPrintf(dClient, "Leader%d  Client%d  CommitIndex:%d Logs:%v", args.LeaderId, rf.me, rf.commitIndex, rf.Logs)
 }
 
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	DPrintf(dLeader, "S%d  CommitIndex:%d", rf.me, rf.commitIndex)
+	// DPrintf(dLeader, "S%d  CommitIndex:%d", rf.me, rf.commitIndex)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
@@ -150,5 +151,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if N > rf.commitIndex {
 		rf.commitIndex = N
 	}
-	// DPrintf(dLeader, "N %d matchIndex %v newNMaps %v Logs %v", N, rf.matchIndex, newNMaps, rf.Logs)
+	// DPrintf(dLeader, "commitIndex%d appliesIndex%d Logs %v", rf.commitIndex, rf.lastApplied, rf.Logs)
+	rf.commitIndexAboveLastApplied()
+
 }
