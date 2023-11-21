@@ -43,10 +43,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.initFollower()
 
 	rf.sendToChannel(rf.heartbeatCh, true)
-	// it is a heartbeat
-	if args.Logs == nil {
-		return
-	}
+
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
 	if args.PrevLogIndex >= len(rf.Logs) ||
@@ -115,8 +112,8 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
-		rf.nextIndex[server] = args.PrevLogIndex + 1
-		rf.matchIndex[server] = args.PrevLogIndex + 1
+		rf.nextIndex[server] = rf.nextIndex[rf.me]
+		rf.matchIndex[server] = rf.matchIndex[rf.me]
 	} else {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
@@ -127,6 +124,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		args.PrevLogIndex = nextIndex - 1
 		args.PrevLogTerm = rf.Logs[nextIndex-1].Term
 		go rf.appendEntryRpc(server, args)
+		return
 	}
 
 	// If there exists an N such that N > commitIndex, a majority
@@ -150,8 +148,8 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 
 	if N > rf.commitIndex {
 		rf.commitIndex = N
+		rf.sendToChannel(rf.commitIndexCh, true)
+		rf.commitIndexAboveLastApplied()
 	}
-	// DPrintf(dLeader, "commitIndex%d appliesIndex%d Logs %v", rf.commitIndex, rf.lastApplied, rf.Logs)
-	rf.commitIndexAboveLastApplied()
-
+	// DPrintf(dLeader, "client %d args%v ", server, args)
 }

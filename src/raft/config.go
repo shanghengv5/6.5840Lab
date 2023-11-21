@@ -574,7 +574,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			cfg.mu.Unlock()
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
-				fmt.Printf("S%d => index %d", si, index1)
+				DPrintf(dTest, "S%d => index1 %d isLeader:%v\n", starts, index1, ok)
 				if ok {
 					index = index1
 					break
@@ -598,6 +598,8 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 				time.Sleep(20 * time.Millisecond)
 			}
 			if retry == false {
+				nd, cmd1 := cfg.nCommitted(index)
+				fmt.Printf("index %v can not agree nd:%d cmd:%v cmd1:%v expectedServers:%d\n", index, nd, cmd, cmd1, expectedServers)
 				cfg.t.Fatalf("one(%v) failed to reach agreement", cmd)
 			}
 		} else {

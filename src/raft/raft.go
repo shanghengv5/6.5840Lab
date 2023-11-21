@@ -71,6 +71,7 @@ type Raft struct {
 	convertLeaderCh    chan bool
 	convertFollowerCh  chan bool
 	convertCandidateCh chan bool
+	commitIndexCh      chan bool
 
 	applyCh chan ApplyMsg
 
@@ -179,22 +180,30 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // the leader.
 func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) {
 	rf.mu.Lock()
-	defer rf.mu.Unlock()
 	index = rf.commitIndex
 	term = rf.currentTerm
 	isLeader = rf.state == Leader
+	rf.mu.Unlock()
+
 	// Your code here (2B).
 	if !isLeader {
 		return
 	}
+	DPrintf(dCommit, "S%d commitIndex%d %s", rf.me, rf.commitIndex, rf.state)
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
-	index = len(rf.Logs) - 1
-	rf.matchIndex[rf.me] = index
-	rf.nextIndex[rf.me] = index + 1
-
+	newIndex := len(rf.Logs) - 1
+	rf.matchIndex[rf.me] = newIndex
+	rf.nextIndex[rf.me] = newIndex + 1
 	rf.broadcastAppendEntries()
+	<-rf.commitIndexCh
+
+	rf.mu.Lock()
+	index = newIndex
+	term = rf.Logs[newIndex].Term
+	isLeader = rf.state == Leader
+	rf.mu.Unlock()
 
 	return
 }
@@ -251,6 +260,7 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
+				DPrintf(dTimer, "S%d heartbeat", rf.me)
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
 			}
@@ -278,6 +288,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)
 	rf.Logs = append(rf.Logs, LogEntry{Term: 0})
+
 	rf.initFollower()
 	rf.initChannel()
 	rf.applyCh = applyCh
@@ -297,6 +308,7 @@ func (rf *Raft) initChannel() {
 	rf.convertFollowerCh = make(chan bool)
 	rf.convertLeaderCh = make(chan bool)
 	rf.convertCandidateCh = make(chan bool)
+	rf.commitIndexCh = make(chan bool)
 }
 
 func (rf *Raft) initFollower() {

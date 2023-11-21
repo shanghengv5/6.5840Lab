@@ -6,16 +6,17 @@ package raft
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
-		rf.applyStateMachine()
+		msg := ApplyMsg{
+			Command:      rf.Logs[rf.lastApplied+1].Command,
+			CommandValid: true,
+			CommandIndex: rf.lastApplied + 1,
+		}
+		go rf.applyStateMachine(msg)
 	}
 }
 
-func (rf *Raft) applyStateMachine() {
-	msg := ApplyMsg{
-		Command:      rf.Logs[rf.lastApplied+1].Command,
-		CommandValid: true,
-		CommandIndex: rf.lastApplied + 1,
-	}
+func (rf *Raft) applyStateMachine(msg ApplyMsg) {
+
 	DPrintf(dInfo, "S%d ApplyMsg %v", rf.me, msg)
 	rf.applyCh <- msg
 
@@ -70,7 +71,7 @@ func (rf *Raft) startElection(fromState State) {
 	rf.voteCount = 1
 
 	rf.broadcastRequestVote()
-	DPrintf(dVote, "S%d fromState%s ", rf.me, fromState)
+	DPrintf(dVote, "S%d fromState %s start election", rf.me, fromState)
 }
 
 func (rf *Raft) voteMajorities() bool {
