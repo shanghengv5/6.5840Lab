@@ -191,7 +191,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
-	index = len(rf.Logs) - 1
+	index = rf.getLastLogIndex()
 	rf.matchIndex[rf.me] = index
 	rf.nextIndex[rf.me] = index + 1
 	rf.broadcastAppendEntries()

@@ -116,3 +116,15 @@ func (rf *Raft) becomeLeader() {
 func (rf *Raft) getLastLogIndex() int {
 	return len(rf.Logs) - 1
 }
+
+func (rf *Raft) getLastLogTerm() int {
+	return rf.Logs[rf.getLastLogIndex()].Term
+}
+
+func (rf *Raft) getPrevLogIndex() int {
+	return rf.getLastLogIndex() - 1
+}
+
+func (rf *Raft) getPrevLogTerm() int {
+	return rf.Logs[rf.getPrevLogIndex()].Term
+}

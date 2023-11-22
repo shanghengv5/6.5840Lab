@@ -1,9 +1,17 @@
 package raft
 
 type AppendEntriesArg struct {
-	Term, LeaderId, PrevLogIndex, PrevLogTerm int
-	Logs                                      []LogEntry
-	LeaderCommit                              int
+	// leader’s term
+	Term int
+	// so follower can redirect clients
+	LeaderId int
+	// index of log entry immediately preceding new ones
+	PrevLogIndex int
+	// term of prevLogIndex entry
+	PrevLogTerm int
+	// log entries to store (empty for heartbeat; may send more than one for efficiency)
+	Entries      []LogEntry
+	LeaderCommit int
 }
 
 type AppendEntriesReply struct {
@@ -57,10 +65,10 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
 	if len(rf.Logs) == newLogIndex+1 &&
-		rf.Logs[newLogIndex].Term != args.Logs[0].Term {
-		rf.Logs = append(rf.Logs[:newLogIndex], args.Logs...)
+		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
+		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
 	} else if len(rf.Logs) == newLogIndex {
-		rf.Logs = append(rf.Logs, args.Logs...)
+		rf.Logs = append(rf.Logs, args.Entries...)
 	}
 
 	if args.LeaderCommit > rf.commitIndex {
@@ -85,7 +93,7 @@ func (rf *Raft) broadcastAppendEntries() {
 			LeaderId:     rf.me,
 			Term:         rf.currentTerm,
 			LeaderCommit: rf.commitIndex,
-			Logs:         rf.Logs[nextIndex:],
+			Entries:      rf.Logs[nextIndex:],
 			PrevLogIndex: nextIndex - 1,
 			PrevLogTerm:  rf.Logs[nextIndex-1].Term,
 		}
@@ -119,7 +127,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		nextIndex := args.PrevLogIndex
 		rf.nextIndex[server] = nextIndex
 
-		args.Logs = rf.Logs[nextIndex:]
+		args.Entries = rf.Logs[nextIndex:]
 		args.PrevLogIndex = nextIndex - 1
 		args.PrevLogTerm = rf.Logs[nextIndex-1].Term
 		go rf.appendEntryRpc(server, args)

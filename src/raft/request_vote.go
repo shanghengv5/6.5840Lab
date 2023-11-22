@@ -37,10 +37,22 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		return
 	}
 
-	if rf.votedFor == -1 || rf.votedFor == args.CandidateId {
+	if rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.grantingVote(args.CandidateId)
 	}
 
+}
+
+// If votedFor is null or candidateId, and candidate’s log is at
+// least as up-to-date as receiver’s log, grant vote (§5.2, §5.4)
+func (rf *Raft) grantVoteCheck(candidateId, lastIndex, lastTerm int) bool {
+	if rf.getLastLogIndex() > lastIndex {
+		return false
+	}
+	if rf.Logs[lastIndex].Term != lastTerm {
+		return false
+	}
+	return rf.votedFor == -1 || rf.votedFor == candidateId
 }
 
 // example code to send a RequestVote RPC to a server.
@@ -104,8 +116,8 @@ func (rf *Raft) broadcastRequestVote() {
 	arg := RequestVoteArgs{
 		Term:         rf.currentTerm,
 		CandidateId:  rf.me,
-		LastLogIndex: 0,
-		LastLogTerm:  0,
+		LastLogIndex: rf.getLastLogIndex(),
+		LastLogTerm:  rf.getLastLogTerm(),
 	}
 	for server := range rf.peers {
 		if server == rf.me {
