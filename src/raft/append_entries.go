@@ -50,7 +50,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.currentTerm = args.Term
 	rf.initFollower()
 	rf.sendToChannel(rf.heartbeatCh, true)
-	DPrintf(dWarn, "S%d  args%v   commitIndex%d leaderCommit%d", rf.me, args, rf.commitIndex)
+	// DPrintf(dWarn, "S%d  args%v   commitIndex%d ", rf.me, args, rf.commitIndex)
 
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
@@ -113,8 +113,8 @@ func (rf *Raft) broadcastAppendEntries() {
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
-	DPrintf(dClient, "S%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
-	DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v CommitIndex%d", server, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex)
+	// DPrintf(dClient, "S%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
+	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v CommitIndex%d", server, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex)
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
 		return

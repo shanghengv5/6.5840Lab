@@ -20,25 +20,23 @@ type RequestVoteReply struct {
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	reply.VoteGranted = true
+	reply.VoteGranted = false
 	reply.Term = args.Term
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-	// fmt.Printf("RequestVote... Sender%d term:%d,  Receiver%d  VotedFor: %d Term: %d state:%s Time: %s \n",
-	// 	args.CandidateId, args.Term, rf.me, rf.votedFor, rf.currentTerm, rf.state.String(), time.Now().Format("15:04:05.000"))
+
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.VoteGranted = false
 		return
 	}
-	if rf.aboveCurrentTerm(args.Term) {
-		return
-	}
 
-	if rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
+	if rf.aboveCurrentTerm(args.Term) && rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.grantingVote(args.CandidateId)
+		reply.VoteGranted = true
+		return
 	}
 
 }
