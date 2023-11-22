@@ -49,8 +49,8 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// If AppendEntries RPC received from new leader: convert to follower
 	rf.currentTerm = args.Term
 	rf.initFollower()
-
 	rf.sendToChannel(rf.heartbeatCh, true)
+	DPrintf(dWarn, "S%d  args%v   commitIndex%d leaderCommit%d", rf.me, args, rf.commitIndex)
 
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
@@ -60,7 +60,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		reply.Term = rf.currentTerm
 		return
 	}
+
 	newLogIndex := args.PrevLogIndex + 1
+
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
@@ -72,9 +74,12 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 
 	if args.LeaderCommit > rf.commitIndex {
-		rf.commitIndex = args.LeaderCommit
+		if args.LeaderCommit > rf.getLastLogIndex() {
+			rf.commitIndex = rf.getLastLogIndex()
+		} else {
+			rf.commitIndex = args.LeaderCommit
+		}
 	}
-	// DPrintf(dClient, "Leader%d  Client%d  CommitIndex:%d AppliesIndex:%d Logs:%v", args.LeaderId, rf.me, rf.commitIndex, rf.lastApplied, rf.Logs)
 
 }
 
@@ -87,22 +92,29 @@ func (rf *Raft) broadcastAppendEntries() {
 			continue
 		}
 		// If last log index ≥ nextIndex for a follower: send
-		nextIndex := rf.nextIndex[server]
 		// AppendEntries RPC with log entries starting at nextIndex
 		args := AppendEntriesArg{
 			LeaderId:     rf.me,
 			Term:         rf.currentTerm,
 			LeaderCommit: rf.commitIndex,
-			Entries:      rf.Logs[nextIndex:],
-			PrevLogIndex: nextIndex - 1,
-			PrevLogTerm:  rf.Logs[nextIndex-1].Term,
 		}
+
+		if rf.getLastLogIndex() >= rf.nextIndex[server] {
+			args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
+			copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
+		}
+
+		args.PrevLogIndex = rf.nextIndex[server] - 1
+		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
 		go rf.appendEntryRpc(server, &args)
+
 	}
 }
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
+	DPrintf(dClient, "S%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
+	DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v CommitIndex%d", server, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex)
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
 		return
@@ -124,12 +136,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	} else {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
-		nextIndex := args.PrevLogIndex
-		rf.nextIndex[server] = nextIndex
-
-		args.Entries = rf.Logs[nextIndex:]
-		args.PrevLogIndex = nextIndex - 1
-		args.PrevLogTerm = rf.Logs[nextIndex-1].Term
+		rf.nextIndex[server]--
+		copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
+		args.PrevLogIndex = rf.nextIndex[server] - 1
+		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
 		go rf.appendEntryRpc(server, args)
 		return
 	}
