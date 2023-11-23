@@ -29,7 +29,6 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
-		reply.VoteGranted = false
 		return
 	}
 
@@ -45,14 +44,29 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 // If votedFor is null or candidateId, and candidate’s log is at
 // least as up-to-date as receiver’s log, grant vote (§5.2, §5.4)
+
 func (rf *Raft) grantVoteCheck(candidateId, lastIndex, lastTerm int) bool {
-	if rf.getLastLogIndex() > lastIndex {
-		return false
+	if (rf.votedFor == -1 || rf.votedFor == candidateId) &&
+		rf.logMoreUpToDate(lastIndex, lastTerm) {
+		return true
 	}
-	if rf.Logs[lastIndex].Term != lastTerm {
-		return false
+
+	return false
+}
+
+//	If the logs have last entries with different terms, then
+//
+// the log with the later term is more up-to-date. If the logs
+// end with the same term, then whichever log is longer is
+// more up-to-date.
+func (rf *Raft) logMoreUpToDate(lastIndex, lastTerm int) bool {
+	if lastTerm > rf.getLastLogTerm() {
+		return true
+	} else if lastTerm == rf.getLastLogTerm() && lastIndex >= rf.getLastLogIndex() {
+		return true
 	}
-	return rf.votedFor == -1 || rf.votedFor == candidateId
+	return false
+
 }
 
 // example code to send a RequestVote RPC to a server.

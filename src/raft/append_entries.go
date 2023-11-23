@@ -137,6 +137,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
 		rf.nextIndex[server]--
+		args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
 		copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
 		args.PrevLogIndex = rf.nextIndex[server] - 1
 		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term

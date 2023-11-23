@@ -12,7 +12,7 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 			CommandValid: true,
 			CommandIndex: rf.lastApplied + 1,
 		}
-		go rf.applyStateMachine(msg)
+		rf.applyStateMachine(msg)
 	}
 }
 
@@ -23,9 +23,7 @@ func (rf *Raft) applyStateMachine(msg ApplyMsg) {
 
 // • If RPC request or response contains term T > currentTerm:
 // set currentTerm = T, convert to follower (§5.1)
-
 func (rf *Raft) aboveCurrentTerm(term int) (shouldReturn bool) {
-	// Must use lock
 	if term > rf.currentTerm {
 		rf.currentTerm = term
 		rf.initFollower()
