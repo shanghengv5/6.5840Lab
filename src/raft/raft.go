@@ -195,8 +195,9 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.nextIndex[rf.me] = index + 1
 	rf.matchIndex[rf.me] = index
 
+	DPrintf(dCommit, "S%d => commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
+
 	rf.broadcastAppendEntries()
-	DPrintf(dCommit, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	return
 }
 
@@ -253,7 +254,6 @@ func (rf *Raft) ticker() {
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
-				// DPrintf(dTimer, "S%d heartbeat", rf.me)
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
 			}

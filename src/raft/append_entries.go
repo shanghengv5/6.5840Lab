@@ -41,6 +41,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
+	DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.Success = false
@@ -61,18 +62,26 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		return
 	}
 
+	if len(args.Entries) == 0 && args.LeaderCommit == rf.commitIndex {
+		return
+	}
+
 	newLogIndex := args.PrevLogIndex + 1
 
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
-	if len(rf.Logs) == newLogIndex+1 &&
+	if len(args.Entries) > 0 &&
+		len(rf.Logs) >= newLogIndex+1 &&
 		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
 		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
 	} else if len(rf.Logs) == newLogIndex {
+		// Append any new entries not already in the log
 		rf.Logs = append(rf.Logs, args.Entries...)
 	}
 
+	//  If leaderCommit > commitIndex, set commitIndex =
+	//min(leaderCommit, index of last new entry)
 	if args.LeaderCommit > rf.commitIndex {
 		if args.LeaderCommit > rf.getLastLogIndex() {
 			rf.commitIndex = rf.getLastLogIndex()
@@ -113,8 +122,7 @@ func (rf *Raft) broadcastAppendEntries() {
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
-	// DPrintf(dClient, "S%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
-	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v CommitIndex%d", server, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex)
+	// DPrintf(dCommit, "ClientS%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
 		return
@@ -141,7 +149,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
 		args.PrevLogIndex = rf.nextIndex[server] - 1
 		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
-		go rf.appendEntryRpc(server, args)
+		rf.appendEntryRpc(server, args)
 		return
 	}
 
