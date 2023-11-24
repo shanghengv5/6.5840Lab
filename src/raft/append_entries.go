@@ -62,16 +62,14 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		return
 	}
 
-	if len(args.Entries) == 0 && args.LeaderCommit == rf.commitIndex {
-		return
-	}
-
 	newLogIndex := args.PrevLogIndex + 1
 
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
-	if len(args.Entries) > 0 &&
+	if len(args.Entries) == 0 && args.LeaderCommit == rf.commitIndex {
+		return
+	} else if len(args.Entries) > 0 &&
 		len(rf.Logs) > newLogIndex &&
 		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
 		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
@@ -80,6 +78,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		rf.Logs = append(rf.Logs, args.Entries...)
 	} else if len(rf.Logs) < newLogIndex {
 		reply.Success = false
+		reply.Term = rf.currentTerm
 		return
 	}
 
