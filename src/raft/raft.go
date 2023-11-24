@@ -293,7 +293,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.applyCh = applyCh
 	rf.nextIndex = make([]int, rf.majority)
 	rf.matchIndex = make([]int, rf.majority)
-	rf.commitIndex = rf.getLastLogIndex()
+
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
