@@ -6,12 +6,12 @@ package raft
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
-		DPrintf(dApply, "S%d lastApplied%d commitIndex%d Logs%v", rf.me, rf.lastApplied, rf.commitIndex, rf.Logs)
 		msg := ApplyMsg{
 			Command:      rf.Logs[rf.lastApplied+1].Command,
 			CommandValid: true,
 			CommandIndex: rf.lastApplied + 1,
 		}
+		DPrintf(dApply, "S%d lastApplied%d commitIndex%d Msg%v", rf.me, rf.lastApplied, rf.commitIndex, msg)
 		rf.applyStateMachine(msg)
 	}
 }
@@ -62,6 +62,7 @@ func (rf *Raft) startElection(fromState State) {
 	}
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+	defer rf.persist()
 
 	rf.grantingVote(rf.me)
 	rf.currentTerm++
@@ -93,7 +94,7 @@ func (rf *Raft) becomeLeader() {
 		// (initialized to 0, increases monotonically)
 		rf.matchIndex[server] = 0
 	}
-	rf.broadcastAppendEntries()
+	// rf.broadcastAppendEntries()
 }
 
 // Leaders:

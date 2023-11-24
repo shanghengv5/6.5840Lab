@@ -158,7 +158,7 @@ func (cfg *config) checkLogs(i int, m ApplyMsg) (string, bool) {
 	if m.CommandIndex > cfg.maxIndex {
 		cfg.maxIndex = m.CommandIndex
 	}
-	DPrintf(dCommit, "commit index=%v server=%v %v Logs:%v\n", m.CommandIndex, i, v, cfg.logs[i])
+	// DPrintf(dTest, "commit index=%v server=%v %v Logs:%v\n", m.CommandIndex, i, v, cfg.logs[i])
 	return err_msg, prevok
 }
 
@@ -360,7 +360,7 @@ func (cfg *config) cleanup() {
 
 // attach server i to the net.
 func (cfg *config) connect(i int) {
-	DPrintf(dConnect, "connect(%d)\n", i)
+	DPrintf(dTest, "connect(%d)\n", i)
 
 	cfg.connected[i] = true
 
@@ -383,7 +383,7 @@ func (cfg *config) connect(i int) {
 
 // detach server i from the net.
 func (cfg *config) disconnect(i int) {
-	DPrintf(dDisConnect, "disconnect(%d)\n", i)
+	DPrintf(dTest, "disconnect(%d)\n", i)
 
 	cfg.connected[i] = false
 

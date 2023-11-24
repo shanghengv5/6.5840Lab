@@ -25,6 +25,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+	defer rf.persist()
 
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm {
@@ -106,7 +107,8 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	}
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
-
+	defer rf.persist()
+	
 	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
 		return
 	}

@@ -40,8 +40,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+	defer rf.persist()
 
-	DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
+	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.Success = false
@@ -67,15 +68,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
-	if len(args.Entries) == 0 && args.LeaderCommit == rf.commitIndex {
-		return
-	} else if len(args.Entries) > 0 &&
+	if len(args.Entries) > 0 &&
 		len(rf.Logs) > newLogIndex &&
 		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
 		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
+
 	} else if len(rf.Logs) == newLogIndex {
 		// Append any new entries not already in the log
 		rf.Logs = append(rf.Logs, args.Entries...)
+
 	} else if len(rf.Logs) < newLogIndex {
 		reply.Success = false
 		reply.Term = rf.currentTerm
@@ -130,7 +131,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		return
 	}
 	rf.mu.Lock()
+
+	defer rf.persist()
 	defer rf.mu.Unlock()
+
 	// Ignore invalid response
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
 		return

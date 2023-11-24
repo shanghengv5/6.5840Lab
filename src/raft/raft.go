@@ -185,7 +185,9 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // the leader.
 func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) {
 	rf.mu.Lock()
+	defer rf.persist()
 	defer rf.mu.Unlock()
+
 	index = rf.commitIndex
 	term = rf.currentTerm
 	isLeader = rf.state == Leader
@@ -291,6 +293,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.applyCh = applyCh
 	rf.nextIndex = make([]int, rf.majority)
 	rf.matchIndex = make([]int, rf.majority)
+	rf.commitIndex = rf.getLastLogIndex()
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
