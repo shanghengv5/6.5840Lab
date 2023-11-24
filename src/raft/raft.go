@@ -196,8 +196,6 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.matchIndex[rf.me] = index
 
 	DPrintf(dCommit, "S%d => commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
-
-	// rf.broadcastAppendEntries()
 	return
 }
 
