@@ -72,12 +72,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
 	if len(args.Entries) > 0 &&
-		len(rf.Logs) >= newLogIndex+1 &&
+		len(rf.Logs) > newLogIndex &&
 		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
 		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
 	} else if len(rf.Logs) == newLogIndex {
 		// Append any new entries not already in the log
 		rf.Logs = append(rf.Logs, args.Entries...)
+	} else if len(rf.Logs) < newLogIndex {
+		reply.Success = false
+		return
 	}
 
 	//  If leaderCommit > commitIndex, set commitIndex =
@@ -149,7 +152,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
 		args.PrevLogIndex = rf.nextIndex[server] - 1
 		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
-		rf.appendEntryRpc(server, args)
+		go rf.appendEntryRpc(server, args)
 		return
 	}
 
