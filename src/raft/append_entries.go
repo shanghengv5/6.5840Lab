@@ -79,7 +79,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	} else if len(rf.Logs) < newLogIndex {
 		reply.Success = false
-		reply.Term = rf.currentTerm
+		reply.Term = rf.currentTerm 
 		return
 	}
 

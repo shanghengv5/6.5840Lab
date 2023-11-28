@@ -188,14 +188,11 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	defer rf.persist()
 	defer rf.mu.Unlock()
 
-	index = rf.commitIndex
-	term = rf.currentTerm
-	isLeader = rf.state == Leader
-
 	// Your code here (2B).
-	if !isLeader {
-		return
+	if rf.state != Leader {
+		return rf.commitIndex, rf.currentTerm, rf.state == Leader
 	}
+
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
@@ -204,7 +201,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.matchIndex[rf.me] = index
 
 	DPrintf(dCommit, "S%d => commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
-	return
+	return index, rf.currentTerm, rf.state == Leader
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
