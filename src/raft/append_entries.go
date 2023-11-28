@@ -79,7 +79,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	} else if len(rf.Logs) < newLogIndex {
 		reply.Success = false
-		reply.Term = rf.currentTerm 
+		reply.Term = rf.currentTerm
 		return
 	}
 
@@ -87,9 +87,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	//min(leaderCommit, index of last new entry)
 	if args.LeaderCommit > rf.commitIndex {
 		if args.LeaderCommit > rf.getLastLogIndex() {
-			rf.commitIndex = rf.getLastLogIndex()
+			rf.SetCommitIndex(rf.getLastLogIndex())
 		} else {
-			rf.commitIndex = args.LeaderCommit
+			rf.SetCommitIndex(args.LeaderCommit)
 		}
 	}
 
@@ -179,7 +179,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	}
 
 	if N > rf.commitIndex {
-		rf.commitIndex = N
+		rf.SetCommitIndex(N)
 	}
 	// DPrintf(dLeader, "client %d args%v ", server, args)
 }
