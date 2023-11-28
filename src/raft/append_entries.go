@@ -160,7 +160,15 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	for _, mI := range rf.matchIndex {
 		if mI < len(rf.Logs) &&
 			mI >= N &&
-			rf.Logs[mI].Term == args.Term {
+			rf.Logs[mI].Term == rf.currentTerm {
+			// To eliminate problems like the one in Figure 8, Raft
+			// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
+			// term are committed by counting replicas; once an entry
+			// from the current term has been committed in this way,
+			// then all prior entries are committed indirectly because
+			// of the Log Matching Property. There are some situations
+			// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
+			// for simplicity
 			newNMaps[mI]++
 		}
 	}
