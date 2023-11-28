@@ -11,7 +11,7 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 			CommandValid: true,
 			CommandIndex: rf.lastApplied + 1,
 		}
-		DPrintf(dApply, "S%d lastApplied%d commitIndex%d Msg%v", rf.me, rf.lastApplied, rf.commitIndex, msg)
+		DPrintf(dApply, "S%d lastApplied%d commitIndex%d Role:%s Msg%v", rf.me, rf.lastApplied, rf.commitIndex, rf.state, msg)
 		rf.applyStateMachine(msg)
 	}
 }
@@ -89,17 +89,7 @@ func (rf *Raft) becomeLeader() {
 	rf.Convert(Leader)
 
 	// (Reinitialized after election)
-	for server := range rf.peers {
-		//for each server, index of the next log entry
-		// to send to that server (initialized to leader
-		// 	last log index + 1)
-		rf.nextIndex[server] = rf.commitIndex + 1
-		//for each server, index of highest log entry
-		// known to be replicated on server
-		// (initialized to 0, increases monotonically)
-		rf.matchIndex[server] = 0
-	}
-	// rf.broadcastAppendEntries()
+	rf.initLeaderVolatile()
 }
 
 // Leaders:

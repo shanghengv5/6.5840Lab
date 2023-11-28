@@ -233,7 +233,6 @@ func (rf *Raft) ticker() {
 		// Your code here (2A)
 		rf.mu.Lock()
 		state := rf.state
-		// rf.commitIndexAboveLastApplied()
 		rf.mu.Unlock()
 		switch state {
 		case Follower:
@@ -312,3 +311,23 @@ func (rf *Raft) initFollower() {
 	rf.votedFor = -1
 	rf.voteCount = 0
 }
+
+func (rf *Raft) initAllServerVolatile() {
+	rf.commitIndex = 0
+	rf.lastApplied = 0
+}
+
+func (rf *Raft) initLeaderVolatile() {
+	for server := range rf.peers {
+		//for each server, index of the next log entry
+		// to send to that server (initialized to leader
+		// 	last log index + 1)
+		rf.nextIndex[server] = rf.commitIndex + 1
+		//for each server, index of highest log entry
+		// known to be replicated on server
+		// (initialized to 0, increases monotonically)
+		rf.matchIndex[server] = 0
+	}
+}
+
+

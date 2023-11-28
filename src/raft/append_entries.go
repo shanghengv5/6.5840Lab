@@ -52,7 +52,6 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.currentTerm = args.Term
 	rf.initFollower()
 	rf.sendToChannel(rf.heartbeatCh, true)
-	// DPrintf(dWarn, "S%d  args%v   commitIndex%d ", rf.me, args, rf.commitIndex)
 
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
@@ -65,22 +64,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	newLogIndex := args.PrevLogIndex + 1
 
+	DPrintf(dTrace, "S%d  args%v  newLogIndex%d Logs%v", rf.me, args, newLogIndex, rf.Logs)
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
-	if len(args.Entries) > 0 &&
-		len(rf.Logs) > newLogIndex &&
-		rf.Logs[newLogIndex].Term != args.Entries[0].Term {
+	if len(rf.Logs) > newLogIndex {
 		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
-
 	} else if len(rf.Logs) == newLogIndex {
-		// Append any new entries not already in the log
+		// Append any new entries
 		rf.Logs = append(rf.Logs, args.Entries...)
-
-	} else if len(rf.Logs) < newLogIndex {
-		reply.Success = false
-		reply.Term = rf.currentTerm
-		return
 	}
 
 	//  If leaderCommit > commitIndex, set commitIndex =
