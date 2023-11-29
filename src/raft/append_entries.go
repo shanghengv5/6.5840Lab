@@ -156,32 +156,28 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	// If there exists an N such that N > commitIndex, a majority
 	// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 	// set commitIndex = N (§5.3, §5.4).
-	N := args.LeaderCommit
-
-	newNMaps := make(map[int]int, 0)
-	for _, mI := range rf.matchIndex {
-		if mI < len(rf.Logs) &&
-			mI >= N &&
-			rf.Logs[mI].Term == rf.currentTerm {
-			// To eliminate problems like the one in Figure 8, Raft
-			// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
-			// term are committed by counting replicas; once an entry
-			// from the current term has been committed in this way,
-			// then all prior entries are committed indirectly because
-			// of the Log Matching Property. There are some situations
-			// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
-			// for simplicity
-			newNMaps[mI]++
-		}
-	}
-	for newN, voteCount := range newNMaps {
-		if voteCount >= rf.majority/2+1 && newN > N {
-			N = newN
-		}
-	}
-
+	N := args.LeaderCommit + 1
 	if N > rf.commitIndex {
-		rf.SetCommitIndex(N)
+		voteCount := 0
+		for _, mI := range rf.matchIndex {
+			if mI <= rf.getLastLogIndex() &&
+				mI >= N &&
+				rf.Logs[mI].Term == rf.currentTerm {
+				// To eliminate problems like the one in Figure 8, Raft
+				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
+				// term are committed by counting replicas; once an entry
+				// from the current term has been committed in this way,
+				// then all prior entries are committed indirectly because
+				// of the Log Matching Property. There are some situations
+				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
+				// for simplicity
+				voteCount++
+			}
+		}
+		if voteCount >= rf.majority/2+1 {
+			rf.SetCommitIndex(N)
+		}
 	}
+
 	// DPrintf(dLeader, "client %d args%v ", server, args)
 }
