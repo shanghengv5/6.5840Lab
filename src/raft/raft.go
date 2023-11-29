@@ -186,9 +186,8 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // the leader.
 func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) {
 	rf.mu.Lock()
-	defer rf.persist()
 	defer rf.mu.Unlock()
-
+	defer rf.persist()
 	// Your code here (2B).
 	if rf.state != Leader {
 		return rf.commitIndex, rf.currentTerm, rf.state == Leader
@@ -225,7 +224,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 10 + (rand.Int63() % HEARTBEAT)
+	ms := HEARTBEAT + 50 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 

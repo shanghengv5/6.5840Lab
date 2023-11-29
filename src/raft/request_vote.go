@@ -61,9 +61,8 @@ func (rf *Raft) grantVoteCheck(candidateId, lastIndex, lastTerm int) bool {
 // end with the same term, then whichever log is longer is
 // more up-to-date.
 func (rf *Raft) logMoreUpToDate(lastIndex, lastTerm int) bool {
-	if lastTerm > rf.getLastLogTerm() {
-		return true
-	} else if lastTerm == rf.getLastLogTerm() && lastIndex >= rf.getLastLogIndex() {
+	if lastTerm > rf.getLastLogTerm() ||
+		(lastTerm == rf.getLastLogTerm() && lastIndex >= rf.getLastLogIndex()) {
 		return true
 	}
 	return false
@@ -108,7 +107,7 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-	
+
 	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
 		return
 	}

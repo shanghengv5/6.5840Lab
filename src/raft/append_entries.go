@@ -106,11 +106,16 @@ func (rf *Raft) broadcastAppendEntries() {
 		if rf.getLastLogIndex() >= rf.nextIndex[server] {
 			args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
 			copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
+			args.PrevLogIndex = rf.nextIndex[server] - 1
+			args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
+		} else {
+			args.Entries = make([]LogEntry, 0)
+			args.PrevLogIndex = rf.getLastLogIndex()
+			args.PrevLogTerm = rf.getLastLogTerm()
 		}
-		
-		args.PrevLogIndex = rf.nextIndex[server] - 1
-		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
+
 		go rf.appendEntryRpc(server, &args)
+
 	}
 }
 
@@ -122,11 +127,9 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		return
 	}
 	rf.mu.Lock()
-
-	defer rf.persist()
 	defer rf.mu.Unlock()
-
-	// Ignore invalid response
+	defer rf.persist()
+	// idempotent
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
 		return
 	}
@@ -136,8 +139,8 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
-		rf.nextIndex[server] = rf.nextIndex[rf.me]
-		rf.matchIndex[server] = rf.matchIndex[rf.me]
+		rf.nextIndex[server] = rf.nextIndex[server] + len(args.Entries)
+		rf.matchIndex[server] = rf.nextIndex[server] - 1
 	} else {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
