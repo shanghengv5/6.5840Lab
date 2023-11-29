@@ -152,6 +152,7 @@ func (rf *Raft) readPersist(data []byte) {
 		rf.currentTerm = currentTerm
 		rf.votedFor = votedFor
 		rf.Logs = logs
+		rf.initLeaderVolatile()
 	}
 }
 
@@ -200,7 +201,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.nextIndex[rf.me] = index + 1
 	rf.matchIndex[rf.me] = index
 
-	DPrintf(dCommit, "S%d => commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
+	DPrintf(dCommit, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	return index, rf.currentTerm, rf.state == Leader
 }
 
@@ -290,6 +291,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.nextIndex = make([]int, rf.majority)
 	rf.matchIndex = make([]int, rf.majority)
 
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
@@ -329,5 +332,3 @@ func (rf *Raft) initLeaderVolatile() {
 		rf.matchIndex[server] = 0
 	}
 }
-
-

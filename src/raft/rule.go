@@ -85,7 +85,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader commitIndex%d Logs%v", rf.me, rf.commitIndex, rf.Logs)
+	DPrintf(dLeader, "S%d become a leader commitIndex%d", rf.me, rf.commitIndex)
 	rf.Convert(Leader)
 
 	// (Reinitialized after election)

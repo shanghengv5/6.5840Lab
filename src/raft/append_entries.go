@@ -64,7 +64,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	newLogIndex := args.PrevLogIndex + 1
 
-	DPrintf(dTrace, "S%d  args%v  newLogIndex%d Logs%v", rf.me, args, newLogIndex, rf.Logs)
+	DPrintf(dTrace, "S%d  args%v newLogIndex%d", rf.me, args, newLogIndex)
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
@@ -107,11 +107,10 @@ func (rf *Raft) broadcastAppendEntries() {
 			args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
 			copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
 		}
-
+		
 		args.PrevLogIndex = rf.nextIndex[server] - 1
 		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
 		go rf.appendEntryRpc(server, &args)
-
 	}
 }
 
