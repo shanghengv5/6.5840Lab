@@ -172,6 +172,12 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	}
 }
 
+// 
+func (rf *Raft) refreshMatchIndex(server int, index int) {
+	rf.matchIndex[server] = index
+	rf.nextIndex[server] = rf.matchIndex[server] + 1
+}
+
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
 // server isn't the leader, returns false. otherwise start the
@@ -197,8 +203,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	rf.nextIndex[rf.me] = index + 1
-	rf.matchIndex[rf.me] = index
+	rf.refreshMatchIndex(rf.me, index)
 
 	DPrintf(dCommit, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	return index, rf.currentTerm, rf.state == Leader

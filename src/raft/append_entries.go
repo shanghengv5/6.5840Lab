@@ -57,6 +57,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	// whose term matches prevLogTerm
 	if args.PrevLogIndex >= len(rf.Logs) ||
 		rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
+
 		reply.Success = false
 		reply.Term = rf.currentTerm
 		return
@@ -101,17 +102,9 @@ func (rf *Raft) broadcastAppendEntries() {
 			LeaderId:     rf.me,
 			Term:         rf.currentTerm,
 			LeaderCommit: rf.commitIndex,
-		}
-
-		if rf.getLastLogIndex() >= rf.nextIndex[server] {
-			args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
-			copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
-			args.PrevLogIndex = rf.nextIndex[server] - 1
-			args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
-		} else {
-			args.Entries = make([]LogEntry, 0)
-			args.PrevLogIndex = rf.getLastLogIndex()
-			args.PrevLogTerm = rf.getLastLogTerm()
+			Entries:      make([]LogEntry, 0),
+			PrevLogIndex: rf.getLastLogIndex(),
+			PrevLogTerm:  rf.getLastLogTerm(),
 		}
 
 		go rf.appendEntryRpc(server, &args)
@@ -121,6 +114,13 @@ func (rf *Raft) broadcastAppendEntries() {
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
+	nextIndex := rf.nextIndex[server]
+	if rf.getLastLogIndex() >= nextIndex {
+		args.Entries = make([]LogEntry, len(rf.Logs[nextIndex:]))
+		copy(args.Entries, rf.Logs[nextIndex:])
+		args.PrevLogIndex = nextIndex - 1
+		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
+	}
 	// DPrintf(dCommit, "ClientS%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
@@ -139,24 +139,18 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
-		rf.nextIndex[server] = rf.nextIndex[server] + len(args.Entries)
-		rf.matchIndex[server] = rf.nextIndex[server] - 1
+		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
 		rf.nextIndex[server]--
-		args.Entries = make([]LogEntry, len(rf.Logs[rf.nextIndex[server]:]))
-		copy(args.Entries, rf.Logs[rf.nextIndex[server]:])
-		args.PrevLogIndex = rf.nextIndex[server] - 1
-		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
 		go rf.appendEntryRpc(server, args)
-		return
 	}
 
 	// If there exists an N such that N > commitIndex, a majority
 	// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 	// set commitIndex = N (§5.3, §5.4).
-	N := args.LeaderCommit + 1
+	N := rf.matchIndex[server]
 	if N > rf.commitIndex {
 		voteCount := 0
 		for _, mI := range rf.matchIndex {
