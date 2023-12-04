@@ -17,6 +17,9 @@ type AppendEntriesArg struct {
 type AppendEntriesReply struct {
 	Term    int
 	Success bool
+	XTerm   int
+	XIndex  int
+	XLen    int
 }
 
 // A log entry implement
@@ -41,7 +44,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-
+	DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d", rf.me, args.LeaderCommit, rf.commitIndex)
 	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
@@ -55,17 +58,27 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
-	if args.PrevLogIndex >= len(rf.Logs) ||
-		rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
-
+	if args.PrevLogIndex >= len(rf.Logs) {
 		reply.Success = false
 		reply.Term = rf.currentTerm
+		reply.XLen = len(rf.Logs)
+		return
+	}
+	if rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
+		reply.Success = false
+		reply.Term = rf.currentTerm
+		// term in the conflicting entry (if any)
+		reply.XTerm = rf.Logs[args.PrevLogIndex].Term
+		// index of first entry with that term (if any)
+		for reply.XIndex = args.PrevLogIndex; reply.XIndex > 0 && rf.Logs[args.PrevLogIndex].Term == reply.XTerm; reply.XIndex-- {
+
+		}
+		reply.XIndex++
 		return
 	}
 
 	newLogIndex := args.PrevLogIndex + 1
 
-	DPrintf(dTrace, "S%d  args%v newLogIndex%d", rf.me, args, newLogIndex)
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
@@ -78,7 +91,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	//  If leaderCommit > commitIndex, set commitIndex =
 	//min(leaderCommit, index of last new entry)
-	if args.LeaderCommit > rf.commitIndex {
+	if args.LeaderCommit >= rf.commitIndex {
 		if args.LeaderCommit > rf.getLastLogIndex() {
 			rf.SetCommitIndex(rf.getLastLogIndex())
 		} else {
@@ -106,14 +119,13 @@ func (rf *Raft) broadcastAppendEntries() {
 			PrevLogIndex: rf.getLastLogIndex(),
 			PrevLogTerm:  rf.getLastLogTerm(),
 		}
-
+		rf.copyEntries(server, &args)
 		go rf.appendEntryRpc(server, &args)
 
 	}
 }
 
-func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
-	reply := AppendEntriesReply{}
+func (rf *Raft) copyEntries(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
 	if rf.getLastLogIndex() >= nextIndex {
 		args.Entries = make([]LogEntry, len(rf.Logs[nextIndex:]))
@@ -121,7 +133,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		args.PrevLogIndex = nextIndex - 1
 		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
 	}
-	// DPrintf(dCommit, "ClientS%d LastLogIndex%d NextIndex%d  Logs%v ", server, rf.getLastLogIndex(), rf.nextIndex[server], rf.Logs)
+}
+
+func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
+	reply := AppendEntriesReply{}
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
 		return
@@ -143,35 +158,24 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	} else {
 		// If AppendEntries fails because of log inconsistency:
 		// decrement nextIndex and retry (§5.3)
+
+		// if reply.XLen > 0 {
+		// 	rf.nextIndex[server] = reply.XLen
+		// } else {
+		// 	var i = rf.getLastLogIndex()
+		// 	for ; i > 0 && rf.Logs[i].Term != reply.XTerm; i-- {
+
+		// 	}
+		// 	if rf.Logs[i].Term == reply.XTerm {
+		// 		rf.nextIndex[server] = i
+		// 	} else {
+		// 		rf.nextIndex[server] = reply.XIndex
+		// 	}
+		// }
 		rf.nextIndex[server]--
+		rf.copyEntries(server, args)
 		go rf.appendEntryRpc(server, args)
+		return
 	}
 
-	// If there exists an N such that N > commitIndex, a majority
-	// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
-	// set commitIndex = N (§5.3, §5.4).
-	N := rf.matchIndex[server]
-	if N > rf.commitIndex {
-		voteCount := 0
-		for _, mI := range rf.matchIndex {
-			if mI <= rf.getLastLogIndex() &&
-				mI >= N &&
-				rf.Logs[mI].Term == rf.currentTerm {
-				// To eliminate problems like the one in Figure 8, Raft
-				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
-				// term are committed by counting replicas; once an entry
-				// from the current term has been committed in this way,
-				// then all prior entries are committed indirectly because
-				// of the Log Matching Property. There are some situations
-				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
-				// for simplicity
-				voteCount++
-			}
-		}
-		if voteCount >= rf.majority/2+1 {
-			rf.SetCommitIndex(N)
-		}
-	}
-
-	// DPrintf(dLeader, "client %d args%v ", server, args)
 }

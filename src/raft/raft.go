@@ -31,7 +31,7 @@ import (
 	"6.5840/labrpc"
 )
 
-const HEARTBEAT = 300
+const HEARTBEAT = 200
 
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -152,7 +152,6 @@ func (rf *Raft) readPersist(data []byte) {
 		rf.currentTerm = currentTerm
 		rf.votedFor = votedFor
 		rf.Logs = logs
-		rf.initLeaderVolatile()
 	}
 }
 
@@ -172,10 +171,15 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	}
 }
 
-// 
 func (rf *Raft) refreshMatchIndex(server int, index int) {
+	if rf.matchIndex[server] > index {
+		return
+	}
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
+
+	rf.existsNSetCommitIndex()
+	DPrintf(dCommit, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%d currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
 }
 
 // the service using Raft (e.g. a k/v server) wants to start
@@ -196,17 +200,17 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	defer rf.persist()
 	// Your code here (2B).
 	if rf.state != Leader {
-		return rf.commitIndex, rf.currentTerm, rf.state == Leader
+		return rf.commitIndex, rf.currentTerm, false
 	}
 
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
+	DPrintf(dStart, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	rf.refreshMatchIndex(rf.me, index)
-
-	DPrintf(dCommit, "S%d => commitIndex%d", rf.me, rf.commitIndex)
-	return index, rf.currentTerm, rf.state == Leader
+	rf.broadcastAppendEntries()
+	return index, rf.currentTerm, true
 }
 
 // the tester doesn't halt goroutines created by Raft after each test,
@@ -229,7 +233,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 50 + (rand.Int63() % HEARTBEAT)
+	ms := HEARTBEAT + 100 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 
@@ -335,4 +339,5 @@ func (rf *Raft) initLeaderVolatile() {
 		// (initialized to 0, increases monotonically)
 		rf.matchIndex[server] = 0
 	}
+	rf.refreshMatchIndex(rf.me, rf.getLastLogIndex())
 }

@@ -6,13 +6,11 @@ package raft
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
-		msg := ApplyMsg{
+		rf.applyStateMachine(ApplyMsg{
 			Command:      rf.Logs[rf.lastApplied+1].Command,
 			CommandValid: true,
 			CommandIndex: rf.lastApplied + 1,
-		}
-		DPrintf(dApply, "S%d lastApplied%d commitIndex%d Role:%s Msg%v", rf.me, rf.lastApplied, rf.commitIndex, rf.state, msg)
-		rf.applyStateMachine(msg)
+		})
 	}
 }
 
@@ -22,7 +20,7 @@ func (rf *Raft) SetCommitIndex(index int) {
 }
 
 func (rf *Raft) applyStateMachine(msg ApplyMsg) {
-	// DPrintf(dApply, "S%d  %v", rf.me, msg)
+	// DPrintf(dApply, "S%d lastApplied%d commitIndex%d Role:%s Msg%v", rf.me, rf.lastApplied, rf.commitIndex, rf.state, msg)
 	rf.applyCh <- msg
 }
 
@@ -90,6 +88,7 @@ func (rf *Raft) becomeLeader() {
 
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
+	rf.broadcastAppendEntries()
 }
 
 // Leaders:
@@ -116,10 +115,29 @@ func (rf *Raft) getLastLogTerm() int {
 	return rf.Logs[rf.getLastLogIndex()].Term
 }
 
-func (rf *Raft) getPrevLogIndex() int {
-	return rf.getLastLogIndex() - 1
-}
-
-func (rf *Raft) getPrevLogTerm() int {
-	return rf.Logs[rf.getPrevLogIndex()].Term
+// If there exists an N such that N > commitIndex, a majority
+// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+// set commitIndex = N (§5.3, §5.4).
+func (rf *Raft) existsNSetCommitIndex() {
+	for N := rf.commitIndex + 1; N <= rf.getLastLogIndex(); N++ {
+		voteCount := 0
+		for _, mI := range rf.matchIndex {
+			if mI <= rf.getLastLogIndex() &&
+				mI >= N &&
+				rf.Logs[mI].Term == rf.currentTerm {
+				// To eliminate problems like the one in Figure 8, Raft
+				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
+				// term are committed by counting replicas; once an entry
+				// from the current term has been committed in this way,
+				// then all prior entries are committed indirectly because
+				// of the Log Matching Property. There are some situations
+				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
+				// for simplicity
+				voteCount++
+			}
+		}
+		if voteCount >= rf.majority/2+1 {
+			rf.SetCommitIndex(N)
+		}
+	}
 }

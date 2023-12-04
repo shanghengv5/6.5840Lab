@@ -502,7 +502,7 @@ func (cfg *config) nCommitted(index int) (int, interface{}) {
 		cfg.mu.Lock()
 		cmd1, ok := cfg.logs[i][index]
 		cfg.mu.Unlock()
-		// fmt.Printf("index %v cmd1 %v ok %v \n", index, cmd1, ok)
+		// fmt.Printf("S%d index %v cmd1 %v ok %v \n", i, index, cmd1, ok)
 		if ok {
 			if count > 0 && cmd != cmd1 {
 				cfg.t.Fatalf("committed values do not match: index %v, %v, %v",
@@ -574,7 +574,6 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			cfg.mu.Unlock()
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
-				// DPrintf(dTest, "S%d => index1 %d isLeader:%v\n", starts, index1, ok)
 				if ok {
 					index = index1
 					break
@@ -597,6 +596,8 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 				}
 				time.Sleep(20 * time.Millisecond)
 			}
+			// nd, cmd1 := cfg.nCommitted(index)
+			// fmt.Printf("index %v can not agree nd:%d cmd:%v cmd1:%v expectedServers:%d\n", index, nd, cmd, cmd1, expectedServers)
 			if retry == false {
 				nd, cmd1 := cfg.nCommitted(index)
 				fmt.Printf("index %v can not agree nd:%d cmd:%v cmd1:%v expectedServers:%d\n", index, nd, cmd, cmd1, expectedServers)
@@ -607,7 +608,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 		}
 	}
 	if cfg.checkFinished() == false {
-		cfg.t.Fatalf("one(%v) failed to reach agreement", cmd)
+		cfg.t.Fatalf("one(%v) failed to reach agreement expectedServers%d", cmd, expectedServers)
 	}
 	return -1
 }
