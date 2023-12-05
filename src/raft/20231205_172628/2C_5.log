@@ -1,0 +1,974 @@
+000004 TEST disconnect(0)
+000007 TEST disconnect(1)
+000008 TEST disconnect(2)
+000008 TEST connect(0)
+000008 TEST connect(1)
+000008 TEST connect(2)
+Test (2C): basic persistence ...
+003269 LEAD S0 become a leader commitIndex0
+003270 CMIT S0 =>S0 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+003272 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+003273 CMIT S0 =>S2 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+003277 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+003278 CMIT S0 =>S1 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+003570 START S0 => commitIndex0
+003571 CMIT S0 =>S0 matchIndex:[1 0 0] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+005281 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+005281 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+005285 CMIT S0 =>S1 matchIndex:[1 1 0] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+005286 CMIT S0 =>S2 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+007291 CLNT S1  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+007292 CLNT S2  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+007292 CMIT S0 =>S1 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+007294 CMIT S0 =>S2 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+007501 TEST disconnect(0)
+007505 TEST disconnect(1)
+007506 TEST disconnect(2)
+007508 TEST disconnect(0)
+007508 TEST connect(0)
+007508 TEST disconnect(1)
+007508 TEST connect(1)
+007509 TEST disconnect(2)
+007509 TEST connect(2)
+011008 LEAD S2 become a leader commitIndex0
+011009 CMIT S2 =>S2 matchIndex:[0 0 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm2 lastApplied0
+011011 CLNT S1  leaderCommit0 commitIndex:0 Term:2 currentTerm2 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+011183 CMIT S2 =>S1 matchIndex:[0 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm2 lastApplied0
+011184 START S2 => commitIndex0
+011184 CMIT S2 =>S2 matchIndex:[0 1 2] commitIndex0 lastLogIndex2 LogTerm{2 12} currentTerm2 lastApplied0
+011186 LEAD S0 become a leader commitIndex0
+011186 CMIT S0 =>S0 matchIndex:[1 0 0] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm2 lastApplied0
+011187 CLNT S0  leaderCommit0 commitIndex:0 Term:2 currentTerm2 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+011187 CLNT S2  leaderCommit0 commitIndex:0 Term:2 currentTerm2 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+011189 CLNT S1  leaderCommit0 commitIndex:0 Term:2 currentTerm2 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+014764 LEAD S2 become a leader commitIndex0
+014766 CMIT S2 =>S2 matchIndex:[0 0 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+014767 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+014769 CMIT S2 =>S0 matchIndex:[1 0 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+014775 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+014776 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+017213 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+017215 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+017217 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+017218 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+019309 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+019347 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+019348 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+019349 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+021303 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+021303 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+021305 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+021306 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+023306 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+023306 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+023307 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+023308 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+025317 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+025317 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+025320 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+025321 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+027320 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+027320 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+027322 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+027323 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+029327 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+029327 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+029329 CMIT S2 =>S0 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+029330 CMIT S2 =>S1 matchIndex:[1 1 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm3 lastApplied0
+031195 START S2 => commitIndex0
+031196 CMIT S2 =>S2 matchIndex:[1 1 2] commitIndex0 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied0
+031332 CLNT S1  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+031333 CMIT S2 =>S1 matchIndex:[1 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied0
+031335 CLNT S0  leaderCommit0 commitIndex:0 Term:3 currentTerm3 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+031337 CMIT S2 =>S0 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied0
+033337 CLNT S0  leaderCommit2 commitIndex:0 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+033339 CMIT S2 =>S0 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+033340 CLNT S1  leaderCommit2 commitIndex:0 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+033341 CMIT S2 =>S1 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+035340 CLNT S1  leaderCommit2 commitIndex:2 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+035341 CLNT S0  leaderCommit2 commitIndex:2 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+035343 CMIT S2 =>S1 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+035343 CMIT S2 =>S0 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+037347 CLNT S0  leaderCommit2 commitIndex:2 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+037349 CLNT S1  leaderCommit2 commitIndex:2 Term:3 currentTerm3 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+037351 CMIT S2 =>S0 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+037352 CMIT S2 =>S1 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm3 lastApplied2
+038486 TEST disconnect(2)
+038487 TEST disconnect(2)
+038490 TEST connect(2)
+040535 LEAD S1 become a leader commitIndex2
+040536 CMIT S1 =>S1 matchIndex:[0 2 0] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm4 lastApplied2
+040537 CLNT S2  leaderCommit2 commitIndex:0 Term:4 currentTerm4 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+040538 CMIT S1 =>S2 matchIndex:[0 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm4 lastApplied2
+040539 CLNT S0  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+040540 CMIT S1 =>S0 matchIndex:[2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 12} currentTerm4 lastApplied2
+041043 START S1 => commitIndex2
+041043 CMIT S1 =>S1 matchIndex:[2 3 2] commitIndex2 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied2
+042541 CLNT S2  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+042541 CLNT S0  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 12} argsPrevTerm:3
+042542 CMIT S1 =>S2 matchIndex:[2 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied2
+042542 CMIT S1 =>S0 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied2
+044552 CLNT S0  leaderCommit3 commitIndex:2 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+044552 CLNT S2  leaderCommit3 commitIndex:2 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+044553 CMIT S1 =>S0 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+044553 CMIT S1 =>S2 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+046554 CLNT S2  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+046554 CLNT S0  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+046555 CMIT S1 =>S2 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+046555 CMIT S1 =>S0 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+048565 CLNT S2  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+048567 CMIT S1 =>S2 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+048570 CLNT S0  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+048571 CMIT S1 =>S0 matchIndex:[3 3 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm4 lastApplied3
+049765 TEST disconnect(1)
+051956 LEAD S0 become a leader commitIndex3
+051956 CMIT S0 =>S0 matchIndex:[3 0 0] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm5 lastApplied3
+051958 CLNT S2  leaderCommit3 commitIndex:3 Term:5 currentTerm5 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+051959 CMIT S0 =>S2 matchIndex:[3 0 3] commitIndex3 lastLogIndex3 LogTerm{4 13} currentTerm5 lastApplied3
+052292 START S0 => commitIndex3
+052292 CMIT S0 =>S0 matchIndex:[4 0 3] commitIndex3 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied3
+053961 CLNT S2  leaderCommit3 commitIndex:3 Term:5 currentTerm5 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+053963 CMIT S0 =>S2 matchIndex:[4 0 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied3
+055967 CLNT S2  leaderCommit4 commitIndex:3 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+055968 CMIT S0 =>S2 matchIndex:[4 0 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+055970 TEST disconnect(1)
+055971 TEST connect(1)
+057989 CLNT S2  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+057990 CMIT S0 =>S2 matchIndex:[4 0 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+057991 CLNT S1  leaderCommit4 commitIndex:0 Term:5 currentTerm5 prevIndex:3 prevLog{4 13} argsPrevTerm:4
+057991 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+059999 CLNT S1  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+059999 CLNT S2  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+060001 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+060002 CMIT S0 =>S2 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+062004 CLNT S2  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+062004 CLNT S1  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+062008 CMIT S0 =>S2 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+062009 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+064006 CLNT S2  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+064006 CLNT S1  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+064007 CMIT S0 =>S2 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+064008 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{5 14} currentTerm5 lastApplied4
+064707 TEST disconnect(1)
+064708 START S0 => commitIndex4
+064710 CMIT S0 =>S0 matchIndex:[5 4 4] commitIndex4 lastLogIndex5 LogTerm{5 15} currentTerm5 lastApplied4
+066011 CLNT S2  leaderCommit4 commitIndex:4 Term:5 currentTerm5 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+066012 CMIT S0 =>S2 matchIndex:[5 4 5] commitIndex5 lastLogIndex5 LogTerm{5 15} currentTerm5 lastApplied4
+068011 CLNT S2  leaderCommit5 commitIndex:4 Term:5 currentTerm5 prevIndex:5 prevLog{5 15} argsPrevTerm:5
+068015 CMIT S0 =>S2 matchIndex:[5 4 5] commitIndex5 lastLogIndex5 LogTerm{5 15} currentTerm5 lastApplied5
+068210 TEST disconnect(1)
+068212 TEST connect(1)
+068213 START S0 => commitIndex5
+068213 CMIT S0 =>S0 matchIndex:[6 4 5] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm5 lastApplied5
+070015 CLNT S2  leaderCommit5 commitIndex:5 Term:5 currentTerm5 prevIndex:5 prevLog{5 15} argsPrevTerm:5
+074586 LEAD S0 become a leader commitIndex5
+074586 CMIT S0 =>S0 matchIndex:[6 0 0] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+074592 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:5 prevLog{5 15} argsPrevTerm:5
+074593 CLNT S1  leaderCommit5 commitIndex:0 Term:8 currentTerm8 prevIndex:4 prevLog{5 14} argsPrevTerm:5
+074593 CMIT S0 =>S2 matchIndex:[6 0 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+074594 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+076591 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+076607 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+076591 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+076609 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+078595 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+078597 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+078599 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+078600 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+080596 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+080601 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+080596 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+080605 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+082600 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+082600 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+082602 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+082603 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+084602 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+084602 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+084604 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+084605 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+086605 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+086605 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+086607 CMIT S0 =>S1 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+086607 CMIT S0 =>S2 matchIndex:[6 6 6] commitIndex5 lastLogIndex6 LogTerm{5 16} currentTerm8 lastApplied5
+088226 START S0 => commitIndex5
+088226 CMIT S0 =>S0 matchIndex:[7 6 6] commitIndex5 lastLogIndex7 LogTerm{8 16} currentTerm8 lastApplied5
+088612 CLNT S2  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+088613 CLNT S1  leaderCommit5 commitIndex:5 Term:8 currentTerm8 prevIndex:6 prevLog{5 16} argsPrevTerm:5
+088614 CMIT S0 =>S2 matchIndex:[7 6 7] commitIndex7 lastLogIndex7 LogTerm{8 16} currentTerm8 lastApplied5
+088615 CMIT S0 =>S1 matchIndex:[7 7 7] commitIndex7 lastLogIndex7 LogTerm{8 16} currentTerm8 lastApplied5
+090623 CLNT S1  leaderCommit7 commitIndex:5 Term:8 currentTerm8 prevIndex:7 prevLog{8 16} argsPrevTerm:8
+090625 CMIT S0 =>S1 matchIndex:[7 7 7] commitIndex7 lastLogIndex7 LogTerm{8 16} currentTerm8 lastApplied7
+090623 CLNT S2  leaderCommit7 commitIndex:5 Term:8 currentTerm8 prevIndex:7 prevLog{8 16} argsPrevTerm:8
+090626 CMIT S0 =>S2 matchIndex:[7 7 7] commitIndex7 lastLogIndex7 LogTerm{8 16} currentTerm8 lastApplied7
+  ... Passed --   9.1  3  119   28560    7
+090760 TEST disconnect(0)
+090761 TEST disconnect(1)
+090762 TEST disconnect(2)
+090762 TEST disconnect(3)
+090762 TEST disconnect(4)
+090763 TEST connect(0)
+090763 TEST connect(1)
+090763 TEST connect(2)
+090763 TEST connect(3)
+090763 TEST connect(4)
+Test (2C): more persistence ...
+093818 LEAD S4 become a leader commitIndex0
+093818 CMIT S4 =>S4 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+093820 CLNT S0  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+093821 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+093821 CMIT S4 =>S0 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+093824 CLNT S3  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+093825 CMIT S4 =>S3 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+093827 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+093827 CMIT S4 =>S1 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+093828 CMIT S4 =>S2 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+093847 START S4 => commitIndex0
+093847 CMIT S4 =>S4 matchIndex:[0 0 0 0 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+095863 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+095863 CLNT S3  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+095864 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+095870 CMIT S4 =>S1 matchIndex:[0 1 0 0 1] commitIndex0 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+095871 CMIT S4 =>S2 matchIndex:[0 1 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+095872 CMIT S4 =>S3 matchIndex:[0 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+095872 CLNT S0  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+095873 CMIT S4 =>S0 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied0
+097855 CLNT S0  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+097856 CMIT S4 =>S0 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+097858 CLNT S1  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+097858 CMIT S4 =>S1 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+097860 CLNT S2  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+097861 CMIT S4 =>S2 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+097862 CLNT S3  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+097863 CMIT S4 =>S3 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+099862 CLNT S3  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+099863 CLNT S1  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+099864 CMIT S4 =>S3 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+099865 CLNT S0  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+099866 CLNT S2  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+099866 CMIT S4 =>S0 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+099867 CMIT S4 =>S1 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+099867 CMIT S4 =>S2 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+101871 CLNT S3  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+101872 CMIT S4 =>S3 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+101873 CLNT S1  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+101874 CMIT S4 =>S1 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+101871 CLNT S0  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+101874 CLNT S2  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+101874 CMIT S4 =>S0 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+101875 CMIT S4 =>S2 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 11} currentTerm1 lastApplied1
+102510 TEST disconnect(0)
+102512 TEST disconnect(1)
+102513 START S4 => commitIndex1
+102513 CMIT S4 =>S4 matchIndex:[1 1 1 1 2] commitIndex1 lastLogIndex2 LogTerm{1 12} currentTerm1 lastApplied1
+103880 CLNT S3  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+103882 CMIT S4 =>S3 matchIndex:[1 1 1 2 2] commitIndex1 lastLogIndex2 LogTerm{1 12} currentTerm1 lastApplied1
+103883 CLNT S2  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 11} argsPrevTerm:1
+103884 CMIT S4 =>S2 matchIndex:[1 1 2 2 2] commitIndex2 lastLogIndex2 LogTerm{1 12} currentTerm1 lastApplied1
+105887 CLNT S2  leaderCommit2 commitIndex:1 Term:1 currentTerm1 prevIndex:2 prevLog{1 12} argsPrevTerm:1
+105888 CLNT S3  leaderCommit2 commitIndex:1 Term:1 currentTerm1 prevIndex:2 prevLog{1 12} argsPrevTerm:1
+105889 CMIT S4 =>S2 matchIndex:[1 1 2 2 2] commitIndex2 lastLogIndex2 LogTerm{1 12} currentTerm1 lastApplied2
+105890 CMIT S4 =>S3 matchIndex:[1 1 2 2 2] commitIndex2 lastLogIndex2 LogTerm{1 12} currentTerm1 lastApplied2
+106047 TEST disconnect(4)
+106047 TEST disconnect(2)
+106047 TEST disconnect(3)
+106048 TEST disconnect(0)
+106051 TEST disconnect(1)
+106053 TEST connect(0)
+106054 TEST connect(1)
+116056 TEST disconnect(2)
+116057 TEST connect(2)
+120763 LEAD S2 become a leader commitIndex0
+120764 CMIT S2 =>S2 matchIndex:[0 0 2 0 0] commitIndex0 lastLogIndex2 LogTerm{1 12} currentTerm6 lastApplied0
+120768 CLNT S0  leaderCommit0 commitIndex:0 Term:6 currentTerm6 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+120768 CLNT S1  leaderCommit0 commitIndex:0 Term:6 currentTerm6 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+120769 CMIT S2 =>S0 matchIndex:[2 0 2 0 0] commitIndex0 lastLogIndex2 LogTerm{1 12} currentTerm6 lastApplied0
+120769 CMIT S2 =>S1 matchIndex:[2 2 2 0 0] commitIndex0 lastLogIndex2 LogTerm{1 12} currentTerm6 lastApplied0
+121115 START S2 => commitIndex0
+121115 CMIT S2 =>S2 matchIndex:[2 2 3 0 0] commitIndex0 lastLogIndex3 LogTerm{6 13} currentTerm6 lastApplied0
+122767 CLNT S1  leaderCommit0 commitIndex:0 Term:6 currentTerm6 prevIndex:2 prevLog{1 12} argsPrevTerm:1
+122767 CLNT S0  leaderCommit0 commitIndex:0 Term:6 currentTerm6 prevIndex:2 prevLog{1 12} argsPrevTerm:1
+122769 CMIT S2 =>S1 matchIndex:[2 3 3 0 0] commitIndex0 lastLogIndex3 LogTerm{6 13} currentTerm6 lastApplied0
+122769 CMIT S2 =>S0 matchIndex:[3 3 3 0 0] commitIndex3 lastLogIndex3 LogTerm{6 13} currentTerm6 lastApplied0
+124778 CLNT S0  leaderCommit3 commitIndex:0 Term:6 currentTerm6 prevIndex:3 prevLog{6 13} argsPrevTerm:6
+124779 CLNT S1  leaderCommit3 commitIndex:0 Term:6 currentTerm6 prevIndex:3 prevLog{6 13} argsPrevTerm:6
+124780 CMIT S2 =>S0 matchIndex:[3 3 3 0 0] commitIndex3 lastLogIndex3 LogTerm{6 13} currentTerm6 lastApplied3
+124780 CMIT S2 =>S1 matchIndex:[3 3 3 0 0] commitIndex3 lastLogIndex3 LogTerm{6 13} currentTerm6 lastApplied3
+124808 TEST connect(3)
+124809 TEST connect(4)
+124809 START S2 => commitIndex3
+124810 CMIT S2 =>S2 matchIndex:[3 3 4 0 0] commitIndex3 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied3
+126791 CLNT S3  leaderCommit3 commitIndex:2 Term:6 currentTerm6 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+126791 CLNT S4  leaderCommit3 commitIndex:2 Term:6 currentTerm6 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+126792 CLNT S1  leaderCommit3 commitIndex:3 Term:6 currentTerm6 prevIndex:3 prevLog{6 13} argsPrevTerm:6
+126793 CMIT S2 =>S3 matchIndex:[3 3 4 4 0] commitIndex3 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied3
+126792 CLNT S0  leaderCommit3 commitIndex:3 Term:6 currentTerm6 prevIndex:3 prevLog{6 13} argsPrevTerm:6
+126796 CMIT S2 =>S0 matchIndex:[4 3 4 4 0] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied3
+126796 CMIT S2 =>S1 matchIndex:[4 4 4 4 0] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied3
+126798 CMIT S2 =>S4 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied3
+128801 CLNT S3  leaderCommit4 commitIndex:3 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+128802 CLNT S0  leaderCommit4 commitIndex:3 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+128803 CMIT S2 =>S3 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+128801 CLNT S1  leaderCommit4 commitIndex:3 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+128803 CMIT S2 =>S0 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+128804 CMIT S2 =>S1 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+128805 CLNT S4  leaderCommit4 commitIndex:3 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+128806 CMIT S2 =>S4 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+130811 CLNT S3  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+130811 CLNT S4  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+130811 CLNT S1  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+130811 CLNT S0  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+130812 CMIT S2 =>S3 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+130814 CMIT S2 =>S4 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+130815 CMIT S2 =>S1 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+130815 CMIT S2 =>S0 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+132821 CLNT S0  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+132821 CLNT S1  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+132823 CLNT S4  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+132821 CLNT S3  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+132823 CMIT S2 =>S0 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+132825 CMIT S2 =>S4 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+132825 CMIT S2 =>S1 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+132826 CMIT S2 =>S3 matchIndex:[4 4 4 4 4] commitIndex4 lastLogIndex4 LogTerm{6 14} currentTerm6 lastApplied4
+133836 TEST disconnect(3)
+133837 TEST disconnect(4)
+133837 START S2 => commitIndex4
+133837 CMIT S2 =>S2 matchIndex:[4 4 5 4 4] commitIndex4 lastLogIndex5 LogTerm{6 15} currentTerm6 lastApplied4
+134822 CLNT S1  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+134823 CLNT S0  leaderCommit4 commitIndex:4 Term:6 currentTerm6 prevIndex:4 prevLog{6 14} argsPrevTerm:6
+134824 CMIT S2 =>S1 matchIndex:[4 5 5 4 4] commitIndex4 lastLogIndex5 LogTerm{6 15} currentTerm6 lastApplied4
+134825 CMIT S2 =>S0 matchIndex:[5 5 5 4 4] commitIndex5 lastLogIndex5 LogTerm{6 15} currentTerm6 lastApplied4
+136834 CLNT S0  leaderCommit5 commitIndex:4 Term:6 currentTerm6 prevIndex:5 prevLog{6 15} argsPrevTerm:6
+136835 CLNT S1  leaderCommit5 commitIndex:4 Term:6 currentTerm6 prevIndex:5 prevLog{6 15} argsPrevTerm:6
+136837 CMIT S2 =>S0 matchIndex:[5 5 5 4 4] commitIndex5 lastLogIndex5 LogTerm{6 15} currentTerm6 lastApplied5
+136838 CMIT S2 =>S1 matchIndex:[5 5 5 4 4] commitIndex5 lastLogIndex5 LogTerm{6 15} currentTerm6 lastApplied5
+136957 TEST disconnect(2)
+136958 TEST disconnect(0)
+136958 TEST disconnect(1)
+136958 TEST disconnect(3)
+136960 TEST disconnect(4)
+136965 TEST connect(3)
+136966 TEST connect(4)
+146975 TEST disconnect(0)
+146977 TEST connect(0)
+150571 LEAD S0 become a leader commitIndex0
+150571 CMIT S0 =>S0 matchIndex:[5 0 0 0 0] commitIndex0 lastLogIndex5 LogTerm{6 15} currentTerm11 lastApplied0
+150573 CLNT S4  leaderCommit0 commitIndex:0 Term:11 currentTerm11 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+150575 CMIT S0 =>S4 matchIndex:[5 0 0 0 5] commitIndex0 lastLogIndex5 LogTerm{6 15} currentTerm11 lastApplied0
+150577 CLNT S3  leaderCommit0 commitIndex:0 Term:11 currentTerm11 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+150579 CMIT S0 =>S3 matchIndex:[5 0 0 5 5] commitIndex0 lastLogIndex5 LogTerm{6 15} currentTerm11 lastApplied0
+150795 START S0 => commitIndex0
+150795 CMIT S0 =>S0 matchIndex:[6 0 0 5 5] commitIndex0 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied0
+152584 CLNT S4  leaderCommit0 commitIndex:0 Term:11 currentTerm11 prevIndex:5 prevLog{6 15} argsPrevTerm:6
+152585 CLNT S3  leaderCommit0 commitIndex:0 Term:11 currentTerm11 prevIndex:5 prevLog{6 15} argsPrevTerm:6
+152585 CMIT S0 =>S4 matchIndex:[6 0 0 5 6] commitIndex0 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied0
+152585 CMIT S0 =>S3 matchIndex:[6 0 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied0
+154590 CLNT S4  leaderCommit6 commitIndex:0 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+154590 CLNT S3  leaderCommit6 commitIndex:0 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+154594 CMIT S0 =>S4 matchIndex:[6 0 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+154595 CMIT S0 =>S3 matchIndex:[6 0 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+154739 TEST connect(1)
+154739 TEST connect(2)
+154739 START S2 => commitIndex5
+154740 CMIT S2 =>S2 matchIndex:[5 5 6 4 4] commitIndex5 lastLogIndex6 LogTerm{6 17} currentTerm6 lastApplied5
+156592 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+156592 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+156592 CLNT S2  leaderCommit6 commitIndex:5 Term:11 currentTerm11 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+156593 CMIT S0 =>S4 matchIndex:[6 0 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+156593 CLNT S1  leaderCommit6 commitIndex:5 Term:11 currentTerm11 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+156594 CMIT S0 =>S3 matchIndex:[6 0 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+156594 CMIT S0 =>S1 matchIndex:[6 6 0 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+156595 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+158592 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+158592 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+158592 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+158594 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+158592 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+158595 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+158600 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+158600 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+160594 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+160594 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+160594 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+160596 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+160594 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+160596 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+160597 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+160597 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+162599 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+162600 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+162599 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+162601 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+162601 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+162602 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+162602 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+162602 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+164600 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+164601 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+164601 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+164601 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+164600 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+164602 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+164603 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+164609 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+166613 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+166615 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+166617 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+166628 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+166629 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+166630 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+166632 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+166633 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+168613 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+168614 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+168614 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+168613 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+168615 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+168616 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+168617 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+168618 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+170614 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+170614 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+170614 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+170615 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+170616 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+170617 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+170617 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+170617 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+172617 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+172619 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+172620 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+172621 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+172619 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+172622 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+172622 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+172623 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+174620 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+174621 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+174620 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+174620 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+174622 CMIT S0 =>S2 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+174622 CMIT S0 =>S4 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+174623 CMIT S0 =>S1 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+174623 CMIT S0 =>S3 matchIndex:[6 6 6 6 6] commitIndex6 lastLogIndex6 LogTerm{11 16} currentTerm11 lastApplied6
+174749 START S0 => commitIndex6
+174749 CMIT S0 =>S0 matchIndex:[7 6 6 6 6] commitIndex6 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied6
+176627 CLNT S4  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+176628 CMIT S0 =>S4 matchIndex:[7 6 6 6 7] commitIndex6 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied6
+176629 CLNT S1  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+176627 CLNT S2  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+176630 CMIT S0 =>S2 matchIndex:[7 6 7 6 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied6
+176631 CMIT S0 =>S1 matchIndex:[7 7 7 6 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied6
+176632 CLNT S3  leaderCommit6 commitIndex:6 Term:11 currentTerm11 prevIndex:6 prevLog{11 16} argsPrevTerm:11
+176634 CMIT S0 =>S3 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied6
+178713 CLNT S1  leaderCommit7 commitIndex:6 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+178714 CMIT S0 =>S1 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+178714 CLNT S4  leaderCommit7 commitIndex:6 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+178715 CLNT S3  leaderCommit7 commitIndex:6 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+178713 CLNT S2  leaderCommit7 commitIndex:6 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+178715 CMIT S0 =>S4 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+178717 CMIT S0 =>S2 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+178717 CMIT S0 =>S3 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+180732 CLNT S4  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+180733 CMIT S0 =>S4 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+180734 CLNT S1  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+180735 CMIT S0 =>S1 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+180735 CLNT S2  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+180736 CMIT S0 =>S2 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+180737 CLNT S3  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+180737 CMIT S0 =>S3 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+182740 CLNT S4  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+182741 CMIT S0 =>S4 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+182742 CLNT S2  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+182743 CLNT S3  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+182743 CMIT S0 =>S2 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+182744 CMIT S0 =>S3 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+182744 CLNT S1  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+182745 CMIT S0 =>S1 matchIndex:[7 7 7 7 7] commitIndex7 lastLogIndex7 LogTerm{11 17} currentTerm11 lastApplied7
+183895 TEST disconnect(1)
+183896 TEST disconnect(2)
+183897 START S0 => commitIndex7
+183897 CMIT S0 =>S0 matchIndex:[8 7 7 7 7] commitIndex7 lastLogIndex8 LogTerm{11 18} currentTerm11 lastApplied7
+184742 CLNT S4  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+184743 CMIT S0 =>S4 matchIndex:[8 7 7 7 8] commitIndex7 lastLogIndex8 LogTerm{11 18} currentTerm11 lastApplied7
+184745 CLNT S3  leaderCommit7 commitIndex:7 Term:11 currentTerm11 prevIndex:7 prevLog{11 17} argsPrevTerm:11
+184746 CMIT S0 =>S3 matchIndex:[8 7 7 8 8] commitIndex8 lastLogIndex8 LogTerm{11 18} currentTerm11 lastApplied7
+186743 CLNT S3  leaderCommit8 commitIndex:7 Term:11 currentTerm11 prevIndex:8 prevLog{11 18} argsPrevTerm:11
+186743 CLNT S4  leaderCommit8 commitIndex:7 Term:11 currentTerm11 prevIndex:8 prevLog{11 18} argsPrevTerm:11
+186745 CMIT S0 =>S4 matchIndex:[8 7 7 8 8] commitIndex8 lastLogIndex8 LogTerm{11 18} currentTerm11 lastApplied8
+186745 CMIT S0 =>S3 matchIndex:[8 7 7 8 8] commitIndex8 lastLogIndex8 LogTerm{11 18} currentTerm11 lastApplied8
+186772 TEST disconnect(0)
+186773 TEST disconnect(3)
+186773 TEST disconnect(4)
+186773 TEST disconnect(1)
+186774 TEST disconnect(2)
+186775 TEST connect(1)
+186775 TEST connect(2)
+196776 TEST disconnect(3)
+196778 TEST connect(3)
+201456 LEAD S3 become a leader commitIndex0
+201456 CMIT S3 =>S3 matchIndex:[0 0 0 8 0] commitIndex0 lastLogIndex8 LogTerm{11 18} currentTerm16 lastApplied0
+201459 CLNT S2  leaderCommit0 commitIndex:0 Term:16 currentTerm16 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+201460 CMIT S3 =>S2 matchIndex:[0 0 8 8 0] commitIndex0 lastLogIndex8 LogTerm{11 18} currentTerm16 lastApplied0
+201460 CLNT S1  leaderCommit0 commitIndex:0 Term:16 currentTerm16 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+201462 CMIT S3 =>S1 matchIndex:[0 8 8 8 0] commitIndex0 lastLogIndex8 LogTerm{11 18} currentTerm16 lastApplied0
+201831 START S3 => commitIndex0
+201832 CMIT S3 =>S3 matchIndex:[0 8 8 9 0] commitIndex0 lastLogIndex9 LogTerm{16 19} currentTerm16 lastApplied0
+203464 CLNT S1  leaderCommit0 commitIndex:0 Term:16 currentTerm16 prevIndex:8 prevLog{11 18} argsPrevTerm:11
+203464 CLNT S2  leaderCommit0 commitIndex:0 Term:16 currentTerm16 prevIndex:8 prevLog{11 18} argsPrevTerm:11
+203466 CMIT S3 =>S1 matchIndex:[0 9 8 9 0] commitIndex0 lastLogIndex9 LogTerm{16 19} currentTerm16 lastApplied0
+203467 CMIT S3 =>S2 matchIndex:[0 9 9 9 0] commitIndex9 lastLogIndex9 LogTerm{16 19} currentTerm16 lastApplied0
+205473 CLNT S1  leaderCommit9 commitIndex:0 Term:16 currentTerm16 prevIndex:9 prevLog{16 19} argsPrevTerm:16
+205473 CLNT S2  leaderCommit9 commitIndex:0 Term:16 currentTerm16 prevIndex:9 prevLog{16 19} argsPrevTerm:16
+205475 CMIT S3 =>S2 matchIndex:[0 9 9 9 0] commitIndex9 lastLogIndex9 LogTerm{16 19} currentTerm16 lastApplied9
+205475 CMIT S3 =>S1 matchIndex:[0 9 9 9 0] commitIndex9 lastLogIndex9 LogTerm{16 19} currentTerm16 lastApplied9
+205603 TEST connect(4)
+205604 TEST connect(0)
+205605 START S3 => commitIndex9
+205605 CMIT S3 =>S3 matchIndex:[0 9 9 10 0] commitIndex9 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied9
+207475 CLNT S4  leaderCommit9 commitIndex:8 Term:16 currentTerm16 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+207477 CMIT S3 =>S4 matchIndex:[0 9 9 10 10] commitIndex9 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied9
+207478 CLNT S0  leaderCommit9 commitIndex:8 Term:16 currentTerm16 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+207479 CMIT S3 =>S0 matchIndex:[10 9 9 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied9
+207481 CLNT S1  leaderCommit9 commitIndex:9 Term:16 currentTerm16 prevIndex:9 prevLog{16 19} argsPrevTerm:16
+207482 CMIT S3 =>S1 matchIndex:[10 10 9 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied9
+207487 CLNT S2  leaderCommit9 commitIndex:9 Term:16 currentTerm16 prevIndex:9 prevLog{16 19} argsPrevTerm:16
+207488 CMIT S3 =>S2 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied9
+209485 CLNT S4  leaderCommit10 commitIndex:9 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+209487 CMIT S3 =>S4 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+209487 CLNT S1  leaderCommit10 commitIndex:9 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+209485 CLNT S0  leaderCommit10 commitIndex:9 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+209488 CMIT S3 =>S1 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+209489 CMIT S3 =>S0 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+209490 CLNT S2  leaderCommit10 commitIndex:9 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+209491 CMIT S3 =>S2 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+211487 CLNT S1  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+211488 CLNT S4  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+211488 CMIT S3 =>S1 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+211489 CLNT S2  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+211487 CLNT S0  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+211489 CMIT S3 =>S4 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+211490 CMIT S3 =>S2 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+211491 CMIT S3 =>S0 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+213490 CLNT S4  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+213490 CLNT S2  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+213490 CLNT S0  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+213490 CLNT S1  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+213491 CMIT S3 =>S4 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+213492 CMIT S3 =>S0 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+213492 CMIT S3 =>S1 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+213492 CMIT S3 =>S2 matchIndex:[10 10 10 10 10] commitIndex10 lastLogIndex10 LogTerm{16 20} currentTerm16 lastApplied10
+215022 TEST disconnect(4)
+215022 TEST disconnect(0)
+215023 START S3 => commitIndex10
+215023 CMIT S3 =>S3 matchIndex:[10 10 10 11 10] commitIndex10 lastLogIndex11 LogTerm{16 21} currentTerm16 lastApplied10
+215497 CLNT S1  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+215497 CLNT S2  leaderCommit10 commitIndex:10 Term:16 currentTerm16 prevIndex:10 prevLog{16 20} argsPrevTerm:16
+215499 CMIT S3 =>S1 matchIndex:[10 11 10 11 10] commitIndex10 lastLogIndex11 LogTerm{16 21} currentTerm16 lastApplied10
+215499 CMIT S3 =>S2 matchIndex:[10 11 11 11 10] commitIndex11 lastLogIndex11 LogTerm{16 21} currentTerm16 lastApplied10
+217501 CLNT S1  leaderCommit11 commitIndex:10 Term:16 currentTerm16 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+217501 CLNT S2  leaderCommit11 commitIndex:10 Term:16 currentTerm16 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+217502 CMIT S3 =>S1 matchIndex:[10 11 11 11 10] commitIndex11 lastLogIndex11 LogTerm{16 21} currentTerm16 lastApplied11
+217502 CMIT S3 =>S2 matchIndex:[10 11 11 11 10] commitIndex11 lastLogIndex11 LogTerm{16 21} currentTerm16 lastApplied11
+217674 TEST disconnect(3)
+217675 TEST disconnect(1)
+217675 TEST disconnect(2)
+217675 TEST disconnect(4)
+217676 TEST disconnect(0)
+217677 TEST connect(4)
+217677 TEST connect(0)
+227687 TEST disconnect(1)
+227691 TEST connect(1)
+232693 LEAD S1 become a leader commitIndex0
+232694 CMIT S1 =>S1 matchIndex:[0 11 0 0 0] commitIndex0 lastLogIndex11 LogTerm{16 21} currentTerm20 lastApplied0
+232695 CLNT S4  leaderCommit0 commitIndex:0 Term:20 currentTerm20 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+232696 CMIT S1 =>S4 matchIndex:[0 11 0 0 11] commitIndex0 lastLogIndex11 LogTerm{16 21} currentTerm20 lastApplied0
+232698 CLNT S0  leaderCommit0 commitIndex:0 Term:20 currentTerm20 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+232699 CMIT S1 =>S0 matchIndex:[11 11 0 0 11] commitIndex0 lastLogIndex11 LogTerm{16 21} currentTerm20 lastApplied0
+232771 START S1 => commitIndex0
+232772 CMIT S1 =>S1 matchIndex:[11 12 0 0 11] commitIndex0 lastLogIndex12 LogTerm{20 22} currentTerm20 lastApplied0
+234701 CLNT S4  leaderCommit0 commitIndex:0 Term:20 currentTerm20 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+234701 CLNT S0  leaderCommit0 commitIndex:0 Term:20 currentTerm20 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+234702 CMIT S1 =>S4 matchIndex:[11 12 0 0 12] commitIndex0 lastLogIndex12 LogTerm{20 22} currentTerm20 lastApplied0
+234703 CMIT S1 =>S0 matchIndex:[12 12 0 0 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm20 lastApplied0
+236705 CLNT S0  leaderCommit12 commitIndex:0 Term:20 currentTerm20 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+236705 CLNT S4  leaderCommit12 commitIndex:0 Term:20 currentTerm20 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+236707 CMIT S1 =>S0 matchIndex:[12 12 0 0 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm20 lastApplied12
+236708 CMIT S1 =>S4 matchIndex:[12 12 0 0 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm20 lastApplied12
+236882 TEST connect(2)
+236883 TEST connect(3)
+236883 START S1 => commitIndex12
+236884 CMIT S1 =>S1 matchIndex:[12 13 0 0 12] commitIndex12 lastLogIndex13 LogTerm{20 23} currentTerm20 lastApplied12
+239782 LEAD S0 become a leader commitIndex12
+239783 CMIT S0 =>S0 matchIndex:[12 0 0 0 0] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+239785 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+239785 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+239786 CMIT S0 =>S1 matchIndex:[12 12 0 0 0] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+239787 CMIT S0 =>S4 matchIndex:[12 12 0 0 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+239788 CLNT S3  leaderCommit12 commitIndex:11 Term:22 currentTerm22 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+239789 CMIT S0 =>S3 matchIndex:[12 12 0 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+239789 CLNT S2  leaderCommit12 commitIndex:11 Term:22 currentTerm22 prevIndex:11 prevLog{16 21} argsPrevTerm:16
+239790 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+241796 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+241796 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+241797 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+241797 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+241796 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+241798 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+241798 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+241799 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+243802 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+243802 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+243802 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+243803 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+243803 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+243804 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+243804 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+243805 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+245803 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+245803 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+245803 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+245804 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+245806 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+245807 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+245808 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+245808 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+247817 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+247819 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+247819 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+247821 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+247821 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+247817 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+247822 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+247823 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+249824 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+249824 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+249826 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+249824 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+249824 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+249828 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+249829 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+249830 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+251832 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+251832 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+251834 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+251832 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+251835 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+251832 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+251837 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+251839 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+253838 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+253839 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+253839 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+253842 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+253839 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+253844 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+253844 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+253846 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+255843 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+255844 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+255844 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+255844 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+255847 CMIT S0 =>S1 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+255847 CMIT S0 =>S4 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+255848 CMIT S0 =>S3 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+255849 CMIT S0 =>S2 matchIndex:[12 12 12 12 12] commitIndex12 lastLogIndex12 LogTerm{20 22} currentTerm22 lastApplied12
+257029 START S0 => commitIndex12
+257030 CMIT S0 =>S0 matchIndex:[13 12 12 12 12] commitIndex12 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied12
+257853 CLNT S2  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+257853 CLNT S1  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+257853 CLNT S4  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+257854 CLNT S3  leaderCommit12 commitIndex:12 Term:22 currentTerm22 prevIndex:12 prevLog{20 22} argsPrevTerm:20
+257856 CMIT S0 =>S1 matchIndex:[13 13 12 12 12] commitIndex12 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied12
+257857 CMIT S0 =>S2 matchIndex:[13 13 13 12 12] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied12
+257858 CMIT S0 =>S4 matchIndex:[13 13 13 12 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied12
+257858 CMIT S0 =>S3 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied12
+259859 CLNT S1  leaderCommit13 commitIndex:12 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+259860 CLNT S3  leaderCommit13 commitIndex:12 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+259861 CMIT S0 =>S1 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+259859 CLNT S2  leaderCommit13 commitIndex:12 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+259861 CMIT S0 =>S3 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+259863 CLNT S4  leaderCommit13 commitIndex:12 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+259863 CMIT S0 =>S2 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+259864 CMIT S0 =>S4 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+261863 CLNT S2  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+261865 CMIT S0 =>S2 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+261863 CLNT S4  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+261865 CLNT S1  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+261866 CMIT S0 =>S4 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+261867 CMIT S0 =>S1 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+261868 CLNT S3  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+261869 CMIT S0 =>S3 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+263869 CLNT S3  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+263871 CLNT S1  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+263871 CMIT S0 =>S3 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+263869 CLNT S4  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+263872 CMIT S0 =>S1 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+263873 CMIT S0 =>S4 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+263874 CLNT S2  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+263875 CMIT S0 =>S2 matchIndex:[13 13 13 13 13] commitIndex13 lastLogIndex13 LogTerm{22 23} currentTerm22 lastApplied13
+265222 TEST disconnect(1)
+265223 TEST disconnect(2)
+265224 START S0 => commitIndex13
+265224 CMIT S0 =>S0 matchIndex:[14 13 13 13 13] commitIndex13 lastLogIndex14 LogTerm{22 24} currentTerm22 lastApplied13
+265873 CLNT S4  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+265874 CLNT S3  leaderCommit13 commitIndex:13 Term:22 currentTerm22 prevIndex:13 prevLog{22 23} argsPrevTerm:22
+265874 CMIT S0 =>S4 matchIndex:[14 13 13 13 14] commitIndex13 lastLogIndex14 LogTerm{22 24} currentTerm22 lastApplied13
+265875 CMIT S0 =>S3 matchIndex:[14 13 13 14 14] commitIndex14 lastLogIndex14 LogTerm{22 24} currentTerm22 lastApplied13
+267875 CLNT S4  leaderCommit14 commitIndex:13 Term:22 currentTerm22 prevIndex:14 prevLog{22 24} argsPrevTerm:22
+267875 CLNT S3  leaderCommit14 commitIndex:13 Term:22 currentTerm22 prevIndex:14 prevLog{22 24} argsPrevTerm:22
+267877 CMIT S0 =>S4 matchIndex:[14 13 13 14 14] commitIndex14 lastLogIndex14 LogTerm{22 24} currentTerm22 lastApplied14
+267878 CMIT S0 =>S3 matchIndex:[14 13 13 14 14] commitIndex14 lastLogIndex14 LogTerm{22 24} currentTerm22 lastApplied14
+268017 TEST disconnect(0)
+268018 TEST disconnect(3)
+268018 TEST disconnect(4)
+268019 TEST disconnect(1)
+268020 TEST disconnect(2)
+268023 TEST connect(1)
+268024 TEST connect(2)
+278026 TEST disconnect(3)
+278028 TEST connect(3)
+281544 LEAD S3 become a leader commitIndex0
+281545 CMIT S3 =>S3 matchIndex:[0 0 0 14 0] commitIndex0 lastLogIndex14 LogTerm{22 24} currentTerm27 lastApplied0
+281549 CLNT S1  leaderCommit0 commitIndex:0 Term:27 currentTerm27 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+281550 CLNT S2  leaderCommit0 commitIndex:0 Term:27 currentTerm27 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+281550 CMIT S3 =>S1 matchIndex:[0 14 0 14 0] commitIndex0 lastLogIndex14 LogTerm{22 24} currentTerm27 lastApplied0
+281551 CMIT S3 =>S2 matchIndex:[0 14 14 14 0] commitIndex0 lastLogIndex14 LogTerm{22 24} currentTerm27 lastApplied0
+281605 START S3 => commitIndex0
+281605 CMIT S3 =>S3 matchIndex:[0 14 14 15 0] commitIndex0 lastLogIndex15 LogTerm{27 25} currentTerm27 lastApplied0
+283564 CLNT S2  leaderCommit0 commitIndex:0 Term:27 currentTerm27 prevIndex:14 prevLog{22 24} argsPrevTerm:22
+283565 CMIT S3 =>S2 matchIndex:[0 14 15 15 0] commitIndex0 lastLogIndex15 LogTerm{27 25} currentTerm27 lastApplied0
+283557 CLNT S1  leaderCommit0 commitIndex:0 Term:27 currentTerm27 prevIndex:14 prevLog{22 24} argsPrevTerm:22
+283571 CMIT S3 =>S1 matchIndex:[0 15 15 15 0] commitIndex15 lastLogIndex15 LogTerm{27 25} currentTerm27 lastApplied0
+285551 CLNT S1  leaderCommit15 commitIndex:0 Term:27 currentTerm27 prevIndex:15 prevLog{27 25} argsPrevTerm:27
+285551 CLNT S2  leaderCommit15 commitIndex:0 Term:27 currentTerm27 prevIndex:15 prevLog{27 25} argsPrevTerm:27
+285552 CMIT S3 =>S1 matchIndex:[0 15 15 15 0] commitIndex15 lastLogIndex15 LogTerm{27 25} currentTerm27 lastApplied15
+285553 CMIT S3 =>S2 matchIndex:[0 15 15 15 0] commitIndex15 lastLogIndex15 LogTerm{27 25} currentTerm27 lastApplied15
+285746 TEST connect(4)
+285747 TEST connect(0)
+285748 START S3 => commitIndex15
+285748 CMIT S3 =>S3 matchIndex:[0 15 15 16 0] commitIndex15 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied15
+287600 CLNT S1  leaderCommit15 commitIndex:15 Term:27 currentTerm27 prevIndex:15 prevLog{27 25} argsPrevTerm:27
+287601 CLNT S0  leaderCommit15 commitIndex:14 Term:27 currentTerm27 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+287602 CLNT S2  leaderCommit15 commitIndex:15 Term:27 currentTerm27 prevIndex:15 prevLog{27 25} argsPrevTerm:27
+287602 CMIT S3 =>S0 matchIndex:[16 15 15 16 0] commitIndex15 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied15
+287603 CMIT S3 =>S2 matchIndex:[16 15 16 16 0] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied15
+287603 CMIT S3 =>S1 matchIndex:[16 16 16 16 0] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied15
+287604 CLNT S4  leaderCommit15 commitIndex:14 Term:27 currentTerm27 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+287604 CMIT S3 =>S4 matchIndex:[16 16 16 16 16] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied15
+289564 CLNT S4  leaderCommit16 commitIndex:15 Term:27 currentTerm27 prevIndex:16 prevLog{27 1000} argsPrevTerm:27
+289565 CLNT S1  leaderCommit16 commitIndex:15 Term:27 currentTerm27 prevIndex:16 prevLog{27 1000} argsPrevTerm:27
+289567 CMIT S3 =>S4 matchIndex:[16 16 16 16 16] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied16
+289564 CLNT S2  leaderCommit16 commitIndex:15 Term:27 currentTerm27 prevIndex:16 prevLog{27 1000} argsPrevTerm:27
+289568 CMIT S3 =>S1 matchIndex:[16 16 16 16 16] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied16
+289569 CMIT S3 =>S2 matchIndex:[16 16 16 16 16] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied16
+289570 CLNT S0  leaderCommit16 commitIndex:15 Term:27 currentTerm27 prevIndex:16 prevLog{27 1000} argsPrevTerm:27
+289571 CMIT S3 =>S0 matchIndex:[16 16 16 16 16] commitIndex16 lastLogIndex16 LogTerm{27 1000} currentTerm27 lastApplied16
+  ... Passed --  19.9  5  758  147098   16
+289734 TEST disconnect(0)
+289734 TEST disconnect(1)
+289734 TEST disconnect(2)
+289735 TEST connect(0)
+289735 TEST connect(1)
+289735 TEST connect(2)
+Test (2C): partitioned leader and one follower crash, leader restarts ...
+292788 LEAD S0 become a leader commitIndex0
+292789 CMIT S0 =>S0 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+292790 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+292790 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+292791 CMIT S0 =>S2 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+292791 CMIT S0 =>S1 matchIndex:[0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+293296 START S0 => commitIndex0
+293296 CMIT S0 =>S0 matchIndex:[1 0 0] commitIndex0 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied0
+294793 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+294793 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+294795 CMIT S0 =>S2 matchIndex:[1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied0
+294796 CMIT S0 =>S1 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied0
+296796 CLNT S1  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+296796 CLNT S2  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+296799 CMIT S0 =>S1 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+296800 CMIT S0 =>S2 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+298802 CLNT S2  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+298837 CMIT S0 =>S2 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+298828 CLNT S1  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+298839 CMIT S0 =>S1 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+300811 CLNT S2  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+300812 CLNT S1  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+300814 CMIT S0 =>S2 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+300815 CMIT S0 =>S1 matchIndex:[1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 101} currentTerm1 lastApplied1
+302481 TEST disconnect(2)
+302482 START S0 => commitIndex1
+302482 CMIT S0 =>S0 matchIndex:[2 1 1] commitIndex1 lastLogIndex2 LogTerm{1 102} currentTerm1 lastApplied1
+302834 CLNT S1  leaderCommit1 commitIndex:1 Term:1 currentTerm1 prevIndex:1 prevLog{1 101} argsPrevTerm:1
+302835 CMIT S0 =>S1 matchIndex:[2 2 1] commitIndex2 lastLogIndex2 LogTerm{1 102} currentTerm1 lastApplied1
+304836 CLNT S1  leaderCommit2 commitIndex:1 Term:1 currentTerm1 prevIndex:2 prevLog{1 102} argsPrevTerm:1
+304838 CMIT S0 =>S1 matchIndex:[2 2 1] commitIndex2 lastLogIndex2 LogTerm{1 102} currentTerm1 lastApplied2
+304946 TEST disconnect(0)
+304946 TEST disconnect(1)
+304946 TEST connect(2)
+304947 TEST disconnect(0)
+304948 TEST connect(0)
+308252 LEAD S0 become a leader commitIndex0
+308253 CMIT S0 =>S0 matchIndex:[2 0 0] commitIndex0 lastLogIndex2 LogTerm{1 102} currentTerm3 lastApplied0
+308254 CLNT S2  leaderCommit0 commitIndex:1 Term:3 currentTerm3 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+308256 CMIT S0 =>S2 matchIndex:[2 0 2] commitIndex0 lastLogIndex2 LogTerm{1 102} currentTerm3 lastApplied0
+308481 START S0 => commitIndex0
+308481 CMIT S0 =>S0 matchIndex:[3 0 2] commitIndex0 lastLogIndex3 LogTerm{3 103} currentTerm3 lastApplied0
+310264 CLNT S2  leaderCommit0 commitIndex:1 Term:3 currentTerm3 prevIndex:2 prevLog{1 102} argsPrevTerm:1
+310266 CMIT S0 =>S2 matchIndex:[3 0 3] commitIndex3 lastLogIndex3 LogTerm{3 103} currentTerm3 lastApplied0
+312276 CLNT S2  leaderCommit3 commitIndex:1 Term:3 currentTerm3 prevIndex:3 prevLog{3 103} argsPrevTerm:3
+312279 CMIT S0 =>S2 matchIndex:[3 0 3] commitIndex3 lastLogIndex3 LogTerm{3 103} currentTerm3 lastApplied3
+312383 TEST disconnect(1)
+312385 TEST connect(1)
+312386 START S0 => commitIndex3
+312386 CMIT S0 =>S0 matchIndex:[4 0 3] commitIndex3 lastLogIndex4 LogTerm{3 104} currentTerm3 lastApplied3
+314279 CLNT S2  leaderCommit3 commitIndex:3 Term:3 currentTerm3 prevIndex:3 prevLog{3 103} argsPrevTerm:3
+314280 CMIT S0 =>S2 matchIndex:[4 0 4] commitIndex4 lastLogIndex4 LogTerm{3 104} currentTerm3 lastApplied3
+314282 CLNT S1  leaderCommit3 commitIndex:0 Term:3 currentTerm3 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+314287 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{3 104} currentTerm3 lastApplied3
+316853 CLNT S1  leaderCommit4 commitIndex:3 Term:3 currentTerm3 prevIndex:4 prevLog{3 104} argsPrevTerm:3
+316856 CMIT S0 =>S1 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{3 104} currentTerm3 lastApplied4
+316857 CLNT S2  leaderCommit4 commitIndex:3 Term:3 currentTerm3 prevIndex:4 prevLog{3 104} argsPrevTerm:3
+316860 CMIT S0 =>S2 matchIndex:[4 4 4] commitIndex4 lastLogIndex4 LogTerm{3 104} currentTerm3 lastApplied4
+  ... Passed --   2.7  3   34    7882    4
+317054 TEST disconnect(0)
+317055 TEST disconnect(1)
+317056 TEST disconnect(2)
+317057 TEST disconnect(3)
+317057 TEST disconnect(4)
+317057 TEST connect(0)
+317058 TEST connect(1)
+317058 TEST connect(2)
+317058 TEST connect(3)
+317058 TEST connect(4)
+Test (2C): Figure 8 ...
+320733 LEAD S3 become a leader commitIndex0
+320738 CMIT S3 =>S3 matchIndex:[0 0 0 0 0] commitIndex0 lastLogIndex0 LogTerm{0 <nil>} currentTerm1 lastApplied0
+320738 START S3 => commitIndex0
+320739 CMIT S3 =>S3 matchIndex:[0 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied0
+320739 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+320740 CLNT S4  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+320739 CLNT S0  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+320740 CMIT S3 =>S2 matchIndex:[0 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{0 <nil>} currentTerm1 lastApplied0
+320741 CMIT S3 =>S0 matchIndex:[0 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{0 <nil>} currentTerm1 lastApplied0
+320741 CMIT S3 =>S4 matchIndex:[0 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{0 <nil>} currentTerm1 lastApplied0
+320742 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+320742 CMIT S3 =>S1 matchIndex:[0 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{0 <nil>} currentTerm1 lastApplied0
+322753 CLNT S0  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+322754 CLNT S2  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+322753 CLNT S4  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+322753 CLNT S1  leaderCommit0 commitIndex:0 Term:1 currentTerm1 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+322756 CMIT S3 =>S0 matchIndex:[1 0 0 1 0] commitIndex0 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied0
+322759 CMIT S3 =>S2 matchIndex:[1 0 1 1 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied0
+322760 CMIT S3 =>S4 matchIndex:[1 0 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied0
+322760 CMIT S3 =>S1 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied0
+324755 CLNT S0  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+324756 CLNT S2  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+324755 CLNT S4  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+324757 CMIT S3 =>S0 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied1
+324755 CLNT S1  leaderCommit1 commitIndex:0 Term:1 currentTerm1 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+324758 CMIT S3 =>S2 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied1
+324759 CMIT S3 =>S4 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied1
+324759 CMIT S3 =>S1 matchIndex:[1 1 1 1 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm1 lastApplied1
+324908 START S3 => commitIndex1
+324909 CMIT S3 =>S3 matchIndex:[1 1 1 2 1] commitIndex1 lastLogIndex2 LogTerm{1 4791679225900236413} currentTerm1 lastApplied1
+325000 TEST disconnect(3)
+328235 LEAD S1 become a leader commitIndex1
+328236 CMIT S1 =>S1 matchIndex:[0 1 0 0 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+328238 CLNT S2  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+328238 CLNT S0  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+328238 CLNT S4  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+328239 CMIT S1 =>S2 matchIndex:[0 1 1 0 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+328240 CMIT S1 =>S0 matchIndex:[1 1 1 0 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+328240 CMIT S1 =>S4 matchIndex:[1 1 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+330243 CLNT S4  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+330243 CLNT S2  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+330245 CMIT S1 =>S4 matchIndex:[1 1 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+330243 CLNT S0  leaderCommit1 commitIndex:1 Term:2 currentTerm2 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+330246 CMIT S1 =>S2 matchIndex:[1 1 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+330247 CMIT S1 =>S0 matchIndex:[1 1 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm2 lastApplied1
+331281 START S1 => commitIndex1
+331282 CMIT S1 =>S1 matchIndex:[1 2 1 0 1] commitIndex1 lastLogIndex2 LogTerm{2 3265102513474697653} currentTerm2 lastApplied1
+331388 TEST disconnect(1)
+333659 LEAD S0 become a leader commitIndex1
+333660 CMIT S0 =>S0 matchIndex:[1 0 0 0 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm3 lastApplied1
+333662 CLNT S2  leaderCommit1 commitIndex:1 Term:3 currentTerm3 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+333663 CLNT S4  leaderCommit1 commitIndex:1 Term:3 currentTerm3 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+333664 CMIT S0 =>S2 matchIndex:[1 0 1 0 0] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm3 lastApplied1
+333665 CMIT S0 =>S4 matchIndex:[1 0 1 0 1] commitIndex1 lastLogIndex1 LogTerm{1 7279025850253927412} currentTerm3 lastApplied1
+335117 START S0 => commitIndex1
+335118 CMIT S0 =>S0 matchIndex:[2 0 1 0 1] commitIndex1 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm3 lastApplied1
+335669 CLNT S4  leaderCommit1 commitIndex:1 Term:3 currentTerm3 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+335669 CLNT S2  leaderCommit1 commitIndex:1 Term:3 currentTerm3 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+335672 CMIT S0 =>S2 matchIndex:[2 0 2 0 1] commitIndex1 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm3 lastApplied1
+335673 CMIT S0 =>S4 matchIndex:[2 0 2 0 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm3 lastApplied1
+337677 CLNT S4  leaderCommit2 commitIndex:1 Term:3 currentTerm3 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+337676 CLNT S2  leaderCommit2 commitIndex:1 Term:3 currentTerm3 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+337679 CMIT S0 =>S4 matchIndex:[2 0 2 0 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm3 lastApplied2
+337679 CMIT S0 =>S2 matchIndex:[2 0 2 0 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm3 lastApplied2
+339515 TEST disconnect(0)
+339784 TEST disconnect(3)
+339786 TEST connect(3)
+341004 LEAD S4 become a leader commitIndex2
+341004 CMIT S4 =>S4 matchIndex:[0 0 0 0 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied2
+341006 CLNT S3  leaderCommit2 commitIndex:0 Term:4 currentTerm4 prevIndex:2 prevLog{1 4791679225900236413} argsPrevTerm:3
+341008 CLNT S3  leaderCommit2 commitIndex:0 Term:4 currentTerm4 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+341010 CMIT S4 =>S3 matchIndex:[0 0 0 2 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied2
+341011 CLNT S2  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+341012 CMIT S4 =>S2 matchIndex:[0 0 2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied2
+343013 CLNT S2  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+343014 CLNT S3  leaderCommit2 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+343015 CMIT S4 =>S2 matchIndex:[0 0 2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied2
+343015 CMIT S4 =>S3 matchIndex:[0 0 2 2 2] commitIndex2 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied2
+343146 START S4 => commitIndex2
+343146 CMIT S4 =>S4 matchIndex:[0 0 2 2 3] commitIndex2 lastLogIndex3 LogTerm{4 2554737628036582765} currentTerm4 lastApplied2
+343273 TEST disconnect(4)
+343374 TEST disconnect(0)
+343378 TEST connect(0)
+347050 LEAD S0 become a leader commitIndex0
+347051 CMIT S0 =>S0 matchIndex:[2 0 0 0 0] commitIndex0 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied0
+347055 CLNT S2  leaderCommit0 commitIndex:2 Term:4 currentTerm4 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+347056 CMIT S0 =>S2 matchIndex:[2 0 2 0 0] commitIndex0 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied0
+347057 CLNT S3  leaderCommit0 commitIndex:2 Term:4 currentTerm4 prevIndex:0 prevLog{0 <nil>} argsPrevTerm:0
+347059 CMIT S0 =>S3 matchIndex:[2 0 2 2 0] commitIndex0 lastLogIndex2 LogTerm{3 6380542019511081408} currentTerm4 lastApplied0
+348847 START S0 => commitIndex0
+348847 CMIT S0 =>S0 matchIndex:[3 0 2 2 0] commitIndex0 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied0
+349064 CLNT S2  leaderCommit0 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+349064 CLNT S3  leaderCommit0 commitIndex:2 Term:4 currentTerm4 prevIndex:2 prevLog{3 6380542019511081408} argsPrevTerm:3
+349065 CMIT S0 =>S2 matchIndex:[3 0 3 2 0] commitIndex0 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied0
+349066 CMIT S0 =>S3 matchIndex:[3 0 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied0
+351068 CLNT S3  leaderCommit3 commitIndex:2 Term:4 currentTerm4 prevIndex:3 prevLog{4 1142535855990485728} argsPrevTerm:4
+351068 CLNT S2  leaderCommit3 commitIndex:2 Term:4 currentTerm4 prevIndex:3 prevLog{4 1142535855990485728} argsPrevTerm:4
+351070 CMIT S0 =>S3 matchIndex:[3 0 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied3
+351071 CMIT S0 =>S2 matchIndex:[3 0 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied3
+353076 CLNT S2  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 1142535855990485728} argsPrevTerm:4
+353076 CLNT S3  leaderCommit3 commitIndex:3 Term:4 currentTerm4 prevIndex:3 prevLog{4 1142535855990485728} argsPrevTerm:4
+353077 CMIT S0 =>S2 matchIndex:[3 0 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied3
+353078 CMIT S0 =>S3 matchIndex:[3 0 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm4 lastApplied3
+353327 TEST disconnect(0)
+353327 TEST disconnect(1)
+353329 TEST connect(1)
+356745 LEAD S3 become a leader commitIndex3
+356745 CMIT S3 =>S3 matchIndex:[0 0 0 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm5 lastApplied3
+356749 CLNT S1  leaderCommit3 commitIndex:0 Term:5 currentTerm5 prevIndex:2 prevLog{2 3265102513474697653} argsPrevTerm:3
+356751 CLNT S1  leaderCommit3 commitIndex:0 Term:5 currentTerm5 prevIndex:1 prevLog{1 7279025850253927412} argsPrevTerm:1
+356752 CMIT S3 =>S1 matchIndex:[0 3 0 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm5 lastApplied3
+356753 CLNT S2  leaderCommit3 commitIndex:3 Term:5 currentTerm5 prevIndex:3 prevLog{4 1142535855990485728} argsPrevTerm:4
+356755 CMIT S3 =>S2 matchIndex:[0 3 3 3 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm5 lastApplied3
+358088 START S3 => commitIndex3
+358088 CMIT S3 =>S3 matchIndex:[0 3 3 4 0] commitIndex3 lastLogIndex4 LogTerm{5 5996582466561170699} currentTerm5 lastApplied3
+358151 TEST disconnect(3)
+358152 TEST disconnect(4)
+358154 TEST connect(4)
+360435 LEAD S1 become a leader commitIndex3
+360436 CMIT S1 =>S1 matchIndex:[0 3 0 0 0] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm6 lastApplied3
+360440 CLNT S4  leaderCommit3 commitIndex:0 Term:6 currentTerm6 prevIndex:3 prevLog{4 2554737628036582765} argsPrevTerm:4
+360442 CMIT S1 =>S4 matchIndex:[0 3 0 0 3] commitIndex3 lastLogIndex3 LogTerm{4 1142535855990485728} currentTerm6 lastApplied3
+360820 START S1 => commitIndex3
+4: log map[1:7279025850253927412 2:6380542019511081408]; server map[1:7279025850253927412 2:6380542019511081408 3:1142535855990485728]
+4: log map[1:7279025850253927412 2:6380542019511081408]; server map[1:7279025850253927412 2:6380542019511081408 3:1142535855990485728]
+4: log map[1:7279025850253927412 2:6380542019511081408]; server map[1:7279025850253927412 2:6380542019511081408 3:1142535855990485728]
+4: log map[1:7279025850253927412 2:6380542019511081408]; server map[1:7279025850253927412 2:6380542019511081408 3:1142535855990485728]
+apply error: commit index=3 server=4 2554737628036582765 != server=3 1142535855990485728
+exit status 1
+FAIL	6.5840/raft	36.468s

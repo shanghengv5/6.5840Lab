@@ -178,7 +178,7 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
 	rf.existsNSetCommitIndex()
-	DPrintf(dCommit, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%d currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
+	DPrintf(dCommit, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%v currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
 }
 
 // the service using Raft (e.g. a k/v server) wants to start
@@ -339,5 +339,5 @@ func (rf *Raft) initLeaderVolatile() {
 		// (initialized to 0, increases monotonically)
 		rf.matchIndex[server] = 0
 	}
-	rf.refreshMatchIndex(rf.me, rf.getLastLogIndex())
+
 }

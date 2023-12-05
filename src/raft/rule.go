@@ -84,7 +84,6 @@ func (rf *Raft) becomeLeader() {
 	}
 	DPrintf(dLeader, "S%d become a leader commitIndex%d", rf.me, rf.commitIndex)
 	rf.Convert(Leader)
-
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
 	rf.broadcastAppendEntries()
