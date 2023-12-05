@@ -93,7 +93,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	//  If leaderCommit > commitIndex, set commitIndex =
 	//min(leaderCommit, index of last new entry)
 	if args.LeaderCommit > rf.commitIndex {
-		if args.LeaderCommit > rf.getLastLogIndex() {
+		if args.LeaderCommit >= rf.getLastLogIndex() {
 			rf.SetCommitIndex(rf.getLastLogIndex())
 		} else {
 			rf.SetCommitIndex(args.LeaderCommit)

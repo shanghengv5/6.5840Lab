@@ -16,7 +16,6 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 
 func (rf *Raft) SetCommitIndex(index int) {
 	rf.commitIndex = index
-	rf.commitIndexAboveLastApplied()
 }
 
 func (rf *Raft) applyStateMachine(msg ApplyMsg) {

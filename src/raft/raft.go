@@ -241,6 +241,7 @@ func (rf *Raft) ticker() {
 		// Your code here (2A)
 		rf.mu.Lock()
 		state := rf.state
+		rf.commitIndexAboveLastApplied()
 		rf.mu.Unlock()
 		switch state {
 		case Follower:
