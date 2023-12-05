@@ -177,7 +177,6 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	}
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
-
 	rf.existsNSetCommitIndex()
 	DPrintf(dCommit, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%d currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
 }
@@ -209,7 +208,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	index = rf.getLastLogIndex()
 	DPrintf(dStart, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	rf.refreshMatchIndex(rf.me, index)
-	rf.broadcastAppendEntries()
+
 	return index, rf.currentTerm, true
 }
 

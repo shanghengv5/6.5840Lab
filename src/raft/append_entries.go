@@ -44,7 +44,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-	DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d", rf.me, args.LeaderCommit, rf.commitIndex)
+
 	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
@@ -64,13 +64,14 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		reply.XLen = len(rf.Logs)
 		return
 	}
+	DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
 	if rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
 		reply.Success = false
 		reply.Term = rf.currentTerm
 		// term in the conflicting entry (if any)
 		reply.XTerm = rf.Logs[args.PrevLogIndex].Term
 		// index of first entry with that term (if any)
-		for reply.XIndex = args.PrevLogIndex; reply.XIndex > 0 && rf.Logs[args.PrevLogIndex].Term == reply.XTerm; reply.XIndex-- {
+		for reply.XIndex = args.PrevLogIndex; reply.XIndex > 0 && rf.Logs[reply.XIndex].Term == reply.XTerm; reply.XIndex-- {
 
 		}
 		reply.XIndex++
@@ -91,14 +92,13 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	//  If leaderCommit > commitIndex, set commitIndex =
 	//min(leaderCommit, index of last new entry)
-	if args.LeaderCommit >= rf.commitIndex {
+	if args.LeaderCommit > rf.commitIndex {
 		if args.LeaderCommit > rf.getLastLogIndex() {
 			rf.SetCommitIndex(rf.getLastLogIndex())
 		} else {
 			rf.SetCommitIndex(args.LeaderCommit)
 		}
 	}
-
 }
 
 // (heartbeat) to each server; repeat during idle periods to
@@ -156,26 +156,27 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		// follower (§5.3)
 		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
-		// If AppendEntries fails because of log inconsistency:
-		// decrement nextIndex and retry (§5.3)
+		//Case 1: leader doesn't have XTerm:
+		// nextIndex = XIndex
+		// Case 2: leader has XTerm:
+		//   nextIndex = leader's last entry for XTerm
+		// Case 3: follower's log is too short:
+		//   nextIndex = XLen
+		if reply.XLen > 0 {
+			rf.nextIndex[server] = reply.XLen
+		} else {
+			var i = rf.getLastLogIndex()
+			for ; i > 0 && rf.Logs[i].Term != reply.XTerm; i-- {
 
-		// if reply.XLen > 0 {
-		// 	rf.nextIndex[server] = reply.XLen
-		// } else {
-		// 	var i = rf.getLastLogIndex()
-		// 	for ; i > 0 && rf.Logs[i].Term != reply.XTerm; i-- {
-
-		// 	}
-		// 	if rf.Logs[i].Term == reply.XTerm {
-		// 		rf.nextIndex[server] = i
-		// 	} else {
-		// 		rf.nextIndex[server] = reply.XIndex
-		// 	}
-		// }
-		rf.nextIndex[server]--
+			}
+			if rf.Logs[i].Term == reply.XTerm {
+				rf.nextIndex[server] = i
+			} else {
+				rf.nextIndex[server] = reply.XIndex
+			}
+		}
 		rf.copyEntries(server, args)
 		go rf.appendEntryRpc(server, args)
-		return
 	}
 
 }
