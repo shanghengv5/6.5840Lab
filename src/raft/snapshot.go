@@ -51,9 +51,8 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 		rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
 		rf.lastIncludedIndex = index
 		rf.lastIncludedTerm = rf.getLogEntry(index).Term
-
 	}
-	DPrintf(dPersist, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
+	DPrintf(dSnap, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
 }
 
 // 1. Reply immediately if term < currentTerm
@@ -101,16 +100,16 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 
 }
 
-// func (rf *Raft) broadcastInstallSnapshot(LastIncludedIndex, LastIncludedTerm int) {
-// 	// DPrintf(dLeader, "S%d  CommitIndex:%d", rf.me, rf.commitIndex)
-// 	for server := range rf.peers {
-// 		if server == rf.me {
-// 			continue
-// 		}
-// 		args := InstallSnapshotArg{
-// 			LeaderId: rf.me,
-// 			Term:     rf.currentTerm,
-// 		}
-// 		go rf.installSnapshotRpc(server, &args)
-// 	}
-// }
+func (rf *Raft) broadcastInstallSnapshot(LastIncludedIndex, LastIncludedTerm int) {
+
+	for server := range rf.peers {
+		if server == rf.me {
+			continue
+		}
+		args := InstallSnapshotArg{
+			LeaderId: rf.me,
+			Term:     rf.currentTerm,
+		}
+		go rf.installSnapshotRpc(server, &args)
+	}
+}

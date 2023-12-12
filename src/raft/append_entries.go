@@ -61,7 +61,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	if args.PrevLogIndex > rf.getLastLogIndex() {
 		reply.Success = false
 		reply.Term = rf.currentTerm
-		reply.XLen = len(rf.Logs)
+		reply.XLen = rf.getLogLength()
 		return
 	}
 	// DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
@@ -104,7 +104,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	// DPrintf(dLeader, "S%d  CommitIndex:%d", rf.me, rf.commitIndex)
+	DPrintf(dLeader, "S%d  lastIncludedIndex%d", rf.me, rf.lastIncludedIndex)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
