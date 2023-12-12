@@ -58,20 +58,20 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
-	if args.PrevLogIndex >= len(rf.Logs) {
+	if args.PrevLogIndex > rf.getLastLogIndex() {
 		reply.Success = false
 		reply.Term = rf.currentTerm
 		reply.XLen = len(rf.Logs)
 		return
 	}
 	// DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
-	if rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
+	if rf.getLogEntry(args.PrevLogIndex).Term != args.PrevLogTerm {
 		reply.Success = false
 		reply.Term = rf.currentTerm
 		// term in the conflicting entry (if any)
-		reply.XTerm = rf.Logs[args.PrevLogIndex].Term
+		reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
 		// index of first entry with that term (if any)
-		for reply.XIndex = args.PrevLogIndex; reply.XIndex > 0 && rf.Logs[reply.XIndex].Term == reply.XTerm; reply.XIndex-- {
+		for reply.XIndex = args.PrevLogIndex; reply.XIndex > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
 
 		}
 		reply.XIndex++
@@ -83,9 +83,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	//If an existing entry conflicts with a new one (same index
 	// but different terms), delete the existing entry and all that
 	// follow it (§5.3)
-	if len(rf.Logs) > newLogIndex {
-		rf.Logs = append(rf.Logs[:newLogIndex], args.Entries...)
-	} else if len(rf.Logs) == newLogIndex {
+	if rf.getLogLength() > newLogIndex {
+		rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
+	} else if rf.getLogLength() == newLogIndex {
 		// Append any new entries
 		rf.Logs = append(rf.Logs, args.Entries...)
 	}
@@ -128,10 +128,10 @@ func (rf *Raft) broadcastAppendEntries() {
 func (rf *Raft) copyEntries(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
 	if rf.getLastLogIndex() >= nextIndex {
-		args.Entries = make([]LogEntry, len(rf.Logs[nextIndex:]))
-		copy(args.Entries, rf.Logs[nextIndex:])
+		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
+		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
 		args.PrevLogIndex = nextIndex - 1
-		args.PrevLogTerm = rf.Logs[args.PrevLogIndex].Term
+		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
 	}
 }
 
@@ -166,10 +166,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 			rf.nextIndex[server] = reply.XLen
 		} else {
 			var i = rf.getLastLogIndex()
-			for ; i > 0 && rf.Logs[i].Term != reply.XTerm; i-- {
+			for ; i > 0 && rf.getLogEntry(i).Term != reply.XTerm; i-- {
 
 			}
-			if rf.Logs[i].Term == reply.XTerm {
+			if rf.getLogEntry(i).Term == reply.XTerm {
 				rf.nextIndex[server] = i
 			} else {
 				rf.nextIndex[server] = reply.XIndex

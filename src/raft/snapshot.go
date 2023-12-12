@@ -40,21 +40,20 @@ type InstallSnapshotReply struct {
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-	// if index >= rf.getLastLogIndex() {
-	// 	newLogs := []LogEntry{
-	// 		LogEntry{},
-	// 	}
 
-	// 	if index < len(rf.Logs) {
-	// 		newLogs = append(newLogs, rf.Logs[index+1:]...)
-	// 	}
-	// 	rf.Logs = newLogs
+	if index+1 < rf.getLastLogIndex() {
+		newLogs := []LogEntry{
+			LogEntry{},
+		}
+		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
 
-	// }
-	// DPrintf(dPersist, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
+		rf.Logs = newLogs
+		rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
+		rf.lastIncludedIndex = index
+		rf.lastIncludedTerm = rf.getLogEntry(index).Term
+
+	}
+	DPrintf(dPersist, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
 }
 
 // 1. Reply immediately if term < currentTerm

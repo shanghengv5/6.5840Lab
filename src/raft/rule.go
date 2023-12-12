@@ -7,7 +7,7 @@ package raft
 func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		rf.applyStateMachine(ApplyMsg{
-			Command:      rf.Logs[rf.lastApplied+1].Command,
+			Command:      rf.getLogEntry(rf.lastApplied + 1).Command,
 			CommandValid: true,
 			CommandIndex: rf.lastApplied + 1,
 		})
@@ -104,13 +104,36 @@ func (rf *Raft) becomeLeader() {
 // • If there exists an N such that N > commitIndex, a majority
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
-
 func (rf *Raft) getLastLogIndex() int {
-	return len(rf.Logs) - 1
+	return len(rf.Logs) - 1 + rf.lastIncludedIndex
 }
 
 func (rf *Raft) getLastLogTerm() int {
-	return rf.Logs[rf.getLastLogIndex()].Term
+	return rf.getLogEntry(rf.getLastLogIndex()).Term
+}
+
+func (rf *Raft) getLogLength() int {
+	return rf.getLastLogIndex() + 1
+}
+
+func (rf *Raft) getFractionLog(front, back int) []LogEntry {
+	if front == -1 {
+		front = 0
+	} else {
+		front -= rf.lastIncludedIndex
+	}
+	if back == -1 {
+		back = len(rf.Logs)
+	} else {
+		front -= rf.lastIncludedIndex
+	}
+	
+	
+	return rf.Logs[front:back]
+}
+
+func (rf *Raft) getLogEntry(index int) LogEntry {
+	return rf.Logs[index-rf.lastIncludedIndex]
 }
 
 // If there exists an N such that N > commitIndex, a majority
@@ -122,7 +145,7 @@ func (rf *Raft) existsNSetCommitIndex() {
 		for _, mI := range rf.matchIndex {
 			if mI <= rf.getLastLogIndex() &&
 				mI >= N &&
-				rf.Logs[mI].Term == rf.currentTerm {
+				rf.getLogEntry(mI).Term == rf.currentTerm {
 				// To eliminate problems like the one in Figure 8, Raft
 				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
 				// term are committed by counting replicas; once an entry

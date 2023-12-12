@@ -21,6 +21,7 @@ import (
 	//	"bytes"
 
 	"bytes"
+	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -79,6 +80,9 @@ type Raft struct {
 	majority  int
 	voteCount int
 
+	lastIncludedIndex int
+	lastIncludedTerm  int
+
 	// Persistent state on all servers
 	currentTerm int
 	votedFor    int
@@ -128,6 +132,7 @@ func (rf *Raft) persist() {
 	e.Encode(rf.currentTerm)
 	e.Encode(rf.votedFor)
 	e.Encode(rf.Logs)
+	e.Encode(rf.lastIncludedIndex)
 	raftstate := w.Bytes()
 	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
 }
@@ -143,15 +148,24 @@ func (rf *Raft) readPersist(data []byte) {
 	d := labgob.NewDecoder(r)
 	var currentTerm int
 	var votedFor int
+	var lastIncludedIndex int
 	var logs = []LogEntry{}
-	if d.Decode(&currentTerm) != nil ||
-		d.Decode(&votedFor) != nil ||
-		d.Decode(&logs) != nil {
+	err1 := d.Decode(&currentTerm)
+	err2 := d.Decode(&votedFor)
+	err4 := d.Decode(&logs)
+	err3 := d.Decode(&lastIncludedIndex)
+
+	if err1 != nil ||
+		err2 != nil ||
+		err3 != nil ||
+		err4 != nil {
+		fmt.Println(err1, err2, err3, err4)
 		panic("read persist error")
 	} else {
 		rf.currentTerm = currentTerm
 		rf.votedFor = votedFor
 		rf.Logs = logs
+		rf.lastIncludedIndex = lastIncludedIndex
 	}
 }
 
@@ -169,7 +183,6 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
 	rf.existsNSetCommitIndex()
-	// DPrintf(dRefresh, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%v currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
 }
 
 // the service using Raft (e.g. a k/v server) wants to start
@@ -197,7 +210,6 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	// DPrintf(dStart, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	rf.refreshMatchIndex(rf.me, index)
 
 	return index, rf.currentTerm, true
@@ -283,6 +295,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)
 	rf.Logs = append(rf.Logs, LogEntry{Term: 0})
+	rf.lastIncludedIndex = 0
 
 	rf.initFollower()
 	rf.initChannel()
