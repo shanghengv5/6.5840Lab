@@ -64,7 +64,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		reply.XLen = len(rf.Logs)
 		return
 	}
-	DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
+	// DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
 	if rf.Logs[args.PrevLogIndex].Term != args.PrevLogTerm {
 		reply.Success = false
 		reply.Term = rf.currentTerm

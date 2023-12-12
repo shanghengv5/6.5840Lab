@@ -155,15 +155,6 @@ func (rf *Raft) readPersist(data []byte) {
 	}
 }
 
-// the service says it has created a snapshot that has
-// all info up to and including index. this means the
-// service no longer needs the log through (and including)
-// that index. Raft should now trim its log as much as possible.
-func (rf *Raft) Snapshot(index int, snapshot []byte) {
-	// Your code here (2D).
-	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-}
-
 func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	select {
 	case ch <- b:
@@ -178,7 +169,7 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
 	rf.existsNSetCommitIndex()
-	DPrintf(dRefresh, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%v currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
+	// DPrintf(dRefresh, "S%d =>S%d matchIndex:%v commitIndex%d lastLogIndex%d LogTerm%v currentTerm%d lastApplied%d", rf.me, server, rf.matchIndex, rf.commitIndex, rf.getLastLogIndex(), rf.Logs[rf.matchIndex[server]], rf.currentTerm, rf.lastApplied)
 }
 
 // the service using Raft (e.g. a k/v server) wants to start
@@ -206,7 +197,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	DPrintf(dStart, "S%d => commitIndex%d", rf.me, rf.commitIndex)
+	// DPrintf(dStart, "S%d => commitIndex%d", rf.me, rf.commitIndex)
 	rf.refreshMatchIndex(rf.me, index)
 
 	return index, rf.currentTerm, true
