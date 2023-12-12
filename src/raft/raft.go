@@ -129,7 +129,7 @@ func (rf *Raft) persist() {
 	e.Encode(rf.votedFor)
 	e.Encode(rf.Logs)
 	raftstate := w.Bytes()
-	rf.persister.Save(raftstate, nil)
+	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
 }
 
 // restore previously persisted state.
@@ -161,7 +161,7 @@ func (rf *Raft) readPersist(data []byte) {
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-
+	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
 }
 
 func (rf *Raft) sendToChannel(ch chan bool, b bool) {
