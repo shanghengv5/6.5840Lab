@@ -104,7 +104,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	DPrintf(dLeader, "S%d  lastIncludedIndex%d", rf.me, rf.lastIncludedIndex)
+	// DPrintf(dLeader, "S%d  lastIncludedIndex%d", rf.me, rf.lastIncludedIndex)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue

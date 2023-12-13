@@ -211,7 +211,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-
+	
 	return index, rf.currentTerm, true
 }
 

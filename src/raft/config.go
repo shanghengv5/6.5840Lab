@@ -599,8 +599,6 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			// nd, cmd1 := cfg.nCommitted(index)
 			// fmt.Printf("index %v can not agree nd:%d cmd:%v cmd1:%v expectedServers:%d\n", index, nd, cmd, cmd1, expectedServers)
 			if retry == false {
-				nd, cmd1 := cfg.nCommitted(index)
-				fmt.Printf("index %v can not agree nd:%d cmd:%v cmd1:%v expectedServers:%d\n", index, nd, cmd, cmd1, expectedServers)
 				cfg.t.Fatalf("one(%v) failed to reach agreement", cmd)
 			}
 		} else {

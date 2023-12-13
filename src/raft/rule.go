@@ -82,7 +82,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader commitIndex%d", rf.me, rf.commitIndex)
+	DPrintf(dLeader, "S%d become a leader ", rf.me)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
@@ -105,7 +105,7 @@ func (rf *Raft) becomeLeader() {
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
 func (rf *Raft) getLastLogIndex() int {
-	return len(rf.Logs) - 1 + rf.lastIncludedIndex
+	return rf.getLogIndex(len(rf.Logs)) - 1
 }
 
 func (rf *Raft) getLastLogTerm() int {
@@ -120,20 +120,23 @@ func (rf *Raft) getFractionLog(front, back int) []LogEntry {
 	if front == -1 {
 		front = 0
 	} else {
-		front -= rf.lastIncludedIndex
+		front = rf.getLogIndex(front)
 	}
 	if back == -1 {
 		back = len(rf.Logs)
 	} else {
-		front -= rf.lastIncludedIndex
+		back = rf.getLogIndex(back)
 	}
-	
-	
+
 	return rf.Logs[front:back]
 }
 
 func (rf *Raft) getLogEntry(index int) LogEntry {
-	return rf.Logs[index-rf.lastIncludedIndex]
+	return rf.Logs[rf.getLogIndex(index)]
+}
+
+func (rf *Raft) getLogIndex(index int) int {
+	return index - rf.lastIncludedIndex
 }
 
 // If there exists an N such that N > commitIndex, a majority
