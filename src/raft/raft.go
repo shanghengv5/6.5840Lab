@@ -176,6 +176,32 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	}
 }
 
+// check snapshot call Index
+func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
+	nextIndex := rf.nextIndex[server]
+	if nextIndex <= rf.lastIncludedIndex {
+		snapArgs := InstallSnapshotArg{
+			Term:              args.Term,
+			LeaderId:          args.LeaderId,
+			LastIncludedIndex: rf.lastIncludedIndex,
+			LastIncludedTerm:  rf.lastIncludedTerm,
+			Offset:            0,
+			Data:              rf.persister.snapshot,
+			Done:              true,
+		}
+		// call installSnapshot rpc
+		go rf.installSnapshotRpc(server, &snapArgs)
+		return
+	}
+	if rf.getLastLogIndex() >= nextIndex {
+		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
+		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
+		args.PrevLogIndex = nextIndex - 1
+		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
+	}
+	go rf.appendEntryRpc(server, args)
+}
+
 func (rf *Raft) refreshMatchIndex(server int, index int) {
 	if rf.matchIndex[server] > index {
 		return
@@ -211,7 +237,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-	
+
 	return index, rf.currentTerm, true
 }
 

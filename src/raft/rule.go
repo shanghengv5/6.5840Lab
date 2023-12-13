@@ -5,6 +5,8 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
+
+	DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		rf.applyStateMachine(ApplyMsg{
 			Command:      rf.getLogEntry(rf.lastApplied + 1).Command,
@@ -12,6 +14,34 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 			CommandIndex: rf.lastApplied + 1,
 		})
 	}
+
+}
+
+func (rf *Raft) SetLastIncludedIndex(index int, snapshot []byte) {
+	if index < rf.lastIncludedIndex {
+		return
+	}
+	newLogs := []LogEntry{
+		LogEntry{},
+	}
+	if index+1 < rf.getLastLogIndex() && rf.getLogIndex(index+1) >= 0 {
+		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
+	}
+	rf.lastIncludedTerm = rf.getLogEntry(index).Term
+	rf.lastIncludedIndex = index
+	rf.Logs = newLogs
+	if rf.lastApplied < rf.lastIncludedIndex {
+		rf.lastApplied = rf.lastIncludedIndex
+	}
+	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
+
+	rf.applyStateMachine(ApplyMsg{
+		SnapshotTerm:  rf.lastIncludedTerm,
+		SnapshotIndex: rf.lastIncludedIndex,
+		SnapshotValid: true,
+		Snapshot:      snapshot,
+	})
+	DPrintf(dSnap, "S%d lastIncludedIndex%d LogLen%d", rf.me, index, len(rf.Logs))
 }
 
 func (rf *Raft) SetCommitIndex(index int) {
@@ -105,7 +135,7 @@ func (rf *Raft) becomeLeader() {
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
 func (rf *Raft) getLastLogIndex() int {
-	return rf.getLogIndex(len(rf.Logs)) - 1
+	return len(rf.Logs) - 1 + rf.lastIncludedIndex
 }
 
 func (rf *Raft) getLastLogTerm() int {

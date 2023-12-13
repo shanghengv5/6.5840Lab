@@ -40,18 +40,13 @@ type InstallSnapshotReply struct {
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-	newLogs := []LogEntry{
-		LogEntry{},
-	}
-	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-	if index+1 < rf.getLastLogIndex() {
-		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
-	}
-	
-	rf.lastIncludedTerm = rf.getLogEntry(index).Term
-	rf.lastIncludedIndex = index
-	rf.Logs = newLogs
-	DPrintf(dSnap, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
+	go func() {
+		rf.mu.Lock()
+		defer rf.mu.Unlock()
+		defer rf.persist()
+		rf.SetLastIncludedIndex(index, snapshot)
+	}()
+
 }
 
 // 1. Reply immediately if term < currentTerm
@@ -76,17 +71,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 	if rf.aboveCurrentTerm(args.Term) {
 		return
 	}
-	rf.persister.Save(rf.persister.ReadRaftState(), args.Data)
-	newLogs := []LogEntry{
-		LogEntry{},
-	}
-	if args.LastIncludedIndex+1 < rf.getLastLogIndex() {
-		newLogs = append(newLogs, rf.getFractionLog(args.LastIncludedIndex+1, -1)...)
-	}
-	rf.Logs = newLogs
-	rf.lastIncludedIndex = args.LastIncludedIndex
-	rf.lastIncludedTerm = args.LastIncludedTerm
-
+	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.Data)
 }
 
 func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {

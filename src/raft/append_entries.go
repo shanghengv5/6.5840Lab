@@ -56,6 +56,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	rf.initFollower()
 	rf.sendToChannel(rf.heartbeatCh, true)
 
+	// snapshot
+	if args.PrevLogIndex < rf.lastIncludedIndex {
+		return
+	}
+
 	// Reply false if log doesn’t contain an entry at prevLogIndex
 	// whose term matches prevLogTerm
 	if args.PrevLogIndex > rf.getLastLogIndex() {
@@ -120,33 +125,7 @@ func (rf *Raft) broadcastAppendEntries() {
 			PrevLogTerm:  rf.getLastLogTerm(),
 		}
 		rf.handleRpc(server, &args)
-
 	}
-}
-
-func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
-	nextIndex := rf.nextIndex[server]
-	if nextIndex < rf.lastIncludedIndex {
-		snapArgs := InstallSnapshotArg{
-			Term:              args.Term,
-			LeaderId:          args.LeaderId,
-			LastIncludedIndex: rf.lastIncludedIndex,
-			LastIncludedTerm:  rf.lastIncludedTerm,
-			Offset:            0,
-			Data:              rf.persister.snapshot,
-			Done:              true,
-		}
-		// call installSnapshot rpc
-		go rf.installSnapshotRpc(server, &snapArgs)
-		return
-	}
-	if rf.getLastLogIndex() >= nextIndex {
-		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
-		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
-		args.PrevLogIndex = nextIndex - 1
-		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
-	}
-	go rf.appendEntryRpc(server, args)
 }
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
