@@ -40,18 +40,17 @@ type InstallSnapshotReply struct {
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	// Your code here (2D).
-
-	if index+1 < rf.getLastLogIndex() {
-		rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-		newLogs := []LogEntry{
-			LogEntry{},
-		}
-		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
-		rf.Logs = newLogs
-		rf.lastIncludedIndex = index
-		rf.lastIncludedTerm = rf.getLogEntry(index).Term
+	newLogs := []LogEntry{
+		LogEntry{},
 	}
-
+	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
+	if index+1 < rf.getLastLogIndex() {
+		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
+	}
+	
+	rf.lastIncludedTerm = rf.getLogEntry(index).Term
+	rf.lastIncludedIndex = index
+	rf.Logs = newLogs
 	DPrintf(dSnap, "S%d index%d LogLen%d", rf.me, index, len(rf.Logs))
 }
 
@@ -70,15 +69,24 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-
+	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm {
-		reply.Term = rf.currentTerm
 		return
 	}
-	if rf.aboveCurrentTerm(reply.Term) {
-		reply.Term = rf.currentTerm
+	if rf.aboveCurrentTerm(args.Term) {
 		return
 	}
+	rf.persister.Save(rf.persister.ReadRaftState(), args.Data)
+	newLogs := []LogEntry{
+		LogEntry{},
+	}
+	if args.LastIncludedIndex+1 < rf.getLastLogIndex() {
+		newLogs = append(newLogs, rf.getFractionLog(args.LastIncludedIndex+1, -1)...)
+	}
+	rf.Logs = newLogs
+	rf.lastIncludedIndex = args.LastIncludedIndex
+	rf.lastIncludedTerm = args.LastIncludedTerm
+
 }
 
 func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
@@ -97,19 +105,5 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	if rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
-
-}
-
-func (rf *Raft) broadcastInstallSnapshot(LastIncludedIndex, LastIncludedTerm int) {
-
-	for server := range rf.peers {
-		if server == rf.me {
-			continue
-		}
-		args := InstallSnapshotArg{
-			LeaderId: rf.me,
-			Term:     rf.currentTerm,
-		}
-		go rf.installSnapshotRpc(server, &args)
-	}
+	rf.refreshMatchIndex(server, rf.lastIncludedIndex)
 }

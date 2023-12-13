@@ -119,20 +119,34 @@ func (rf *Raft) broadcastAppendEntries() {
 			PrevLogIndex: rf.getLastLogIndex(),
 			PrevLogTerm:  rf.getLastLogTerm(),
 		}
-		rf.copyEntries(server, &args)
-		go rf.appendEntryRpc(server, &args)
+		rf.handleRpc(server, &args)
 
 	}
 }
 
-func (rf *Raft) copyEntries(server int, args *AppendEntriesArg) {
+func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
+	if nextIndex < rf.lastIncludedIndex {
+		snapArgs := InstallSnapshotArg{
+			Term:              args.Term,
+			LeaderId:          args.LeaderId,
+			LastIncludedIndex: rf.lastIncludedIndex,
+			LastIncludedTerm:  rf.lastIncludedTerm,
+			Offset:            0,
+			Data:              rf.persister.snapshot,
+			Done:              true,
+		}
+		// call installSnapshot rpc
+		go rf.installSnapshotRpc(server, &snapArgs)
+		return
+	}
 	if rf.getLastLogIndex() >= nextIndex {
 		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
 		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
 		args.PrevLogIndex = nextIndex - 1
 		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
 	}
+	go rf.appendEntryRpc(server, args)
 }
 
 func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
@@ -175,8 +189,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 				rf.nextIndex[server] = reply.XIndex
 			}
 		}
-		rf.copyEntries(server, args)
-		go rf.appendEntryRpc(server, args)
+		rf.handleRpc(server, args)
 	}
 
 }
