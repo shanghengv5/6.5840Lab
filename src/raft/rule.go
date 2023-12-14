@@ -5,13 +5,13 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
-
 	DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
+		applyIndex := rf.lastApplied + 1
 		rf.applyStateMachine(ApplyMsg{
-			Command:      rf.getLogEntry(rf.lastApplied + 1).Command,
+			Command:      rf.getLogEntry(applyIndex).Command,
 			CommandValid: true,
-			CommandIndex: rf.lastApplied + 1,
+			CommandIndex: applyIndex,
 		})
 	}
 
@@ -21,27 +21,27 @@ func (rf *Raft) SetLastIncludedIndex(index int, snapshot []byte) {
 	if index < rf.lastIncludedIndex {
 		return
 	}
-	newLogs := []LogEntry{
-		LogEntry{},
-	}
-	if index+1 < rf.getLastLogIndex() && rf.getLogIndex(index+1) >= 0 {
-		newLogs = append(newLogs, rf.getFractionLog(index+1, -1)...)
+	// SetNewSnapshot
+	newHead := []LogEntry{{Term: 0}}
+	rest := index + 1
+	if rest <= rf.getLastLogIndex() {
+		newHead = append(newHead, rf.getFractionLog(rest, -1)...)
 	}
 	rf.lastIncludedTerm = rf.getLogEntry(index).Term
 	rf.lastIncludedIndex = index
-	rf.Logs = newLogs
+	rf.Logs = newHead
+	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
+	// If snapshot will update apply msg
 	if rf.lastApplied < rf.lastIncludedIndex {
 		rf.lastApplied = rf.lastIncludedIndex
+		rf.applyStateMachine(ApplyMsg{
+			SnapshotTerm:  rf.lastIncludedTerm,
+			SnapshotIndex: rf.lastIncludedIndex,
+			SnapshotValid: true,
+			Snapshot:      snapshot,
+		})
 	}
-	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-
-	rf.applyStateMachine(ApplyMsg{
-		SnapshotTerm:  rf.lastIncludedTerm,
-		SnapshotIndex: rf.lastIncludedIndex,
-		SnapshotValid: true,
-		Snapshot:      snapshot,
-	})
-	DPrintf(dSnap, "S%d lastIncludedIndex%d LogLen%d", rf.me, index, len(rf.Logs))
+	DPrintf(dSnap, "S%d lastIncludedIndex%d lastApplied%d", rf.me, index, rf.lastApplied)
 }
 
 func (rf *Raft) SetCommitIndex(index int) {
