@@ -45,12 +45,12 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	defer rf.mu.Unlock()
 	defer rf.persist()
 
-	// DPrintf(dClient, "S%d Args:PrevLogIndex%d PrevLogTerm%d Logs%v rfCommitIndex%d rfLogs:%v", rf.me, args.PrevLogIndex, args.PrevLogTerm, args.Entries, rf.commitIndex, rf.Logs)
 	if args.Term < rf.currentTerm {
 		reply.Term = rf.currentTerm
 		reply.Success = false
 		return
 	}
+	DPrintf(dClient, "S%d AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	// If AppendEntries RPC received from new leader: convert to follower
 	rf.currentTerm = args.Term
 	rf.initFollower()
