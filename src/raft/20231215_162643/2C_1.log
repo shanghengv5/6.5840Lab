@@ -1,0 +1,224 @@
+Test (2C): basic persistence ...
+panic: test timed out after 10m0s
+running tests:
+	TestPersist12C (10m0s)
+
+goroutine 17918 [running]:
+testing.(*M).startAlarm.func1()
+	/usr/local/go/src/testing/testing.go:2241 +0x3c5
+created by time.goFunc
+	/usr/local/go/src/time/sleep.go:176 +0x32
+
+goroutine 1 [chan receive, 9 minutes]:
+testing.(*T).Run(0xc000082ea0, {0x123be18?, 0x4d4d36f762a6?}, 0x124ae08)
+	/usr/local/go/src/testing/testing.go:1630 +0x405
+testing.runTests.func1(0x13cf5a0?)
+	/usr/local/go/src/testing/testing.go:2036 +0x45
+testing.tRunner(0xc000082ea0, 0xc0000dbc88)
+	/usr/local/go/src/testing/testing.go:1576 +0x10b
+testing.runTests(0xc0000bc0a0?, {0x13cb080, 0x1c, 0x1c}, {0x20?, 0x100c0000abb48?, 0x13cedc0?})
+	/usr/local/go/src/testing/testing.go:2034 +0x489
+testing.(*M).Run(0xc0000bc0a0)
+	/usr/local/go/src/testing/testing.go:1906 +0x63a
+main.main()
+	_testmain.go:101 +0x1aa
+
+goroutine 18 [chan send, 9 minutes]:
+6.5840/raft.(*Raft).applyStateMachine(...)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/rule.go:67
+6.5840/raft.(*Raft).SetLastIncludedIndex(0xc000298000, 0x0, 0x0, {0x13fcc60, 0x0, 0x0})
+	/Users/qt/Documents/App/golang/6.5840/src/raft/rule.go:51 +0x3b7
+6.5840/raft.(*Raft).readPersist(0xc000298000, {0xc0000249c0, 0x5c, 0x5c})
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:173 +0x2de
+6.5840/raft.Make({0xc000010ac8, 0x3, 0x3}, 0x0, 0xc000015880, 0xc0000247e0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:341 +0x3e5
+6.5840/raft.(*config).start1(0xc0000fa000, 0x0, 0xc000050ac0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:324 +0x535
+6.5840/raft.TestPersist12C(0x0?)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/test_test.go:688 +0xa9
+testing.tRunner(0xc000083040, 0x124ae08)
+	/usr/local/go/src/testing/testing.go:1576 +0x10b
+created by testing.(*T).Run
+	/usr/local/go/src/testing/testing.go:1629 +0x3ea
+
+goroutine 19 [select]:
+6.5840/labrpc.MakeNetwork.func1()
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:153 +0xb8
+created by 6.5840/labrpc.MakeNetwork
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:151 +0x17c
+
+goroutine 21 [chan receive, 9 minutes]:
+6.5840/raft.(*config).applier(0xc0000fa000, 0x0, 0x0?)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:168 +0x8d
+created by 6.5840/raft.(*config).start1
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:330 +0x62e
+
+goroutine 22 [select]:
+6.5840/raft.(*Raft).ticker(0xc0000fc0f0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:283 +0x35c
+created by 6.5840/raft.Make
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:344 +0x425
+
+goroutine 23 [chan receive, 9 minutes]:
+6.5840/raft.(*config).applier(0xc0000fa000, 0x1, 0x0?)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:168 +0x8d
+created by 6.5840/raft.(*config).start1
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:330 +0x62e
+
+goroutine 24 [select]:
+6.5840/raft.(*Raft).ticker(0xc0000fc1e0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:299 +0x132
+created by 6.5840/raft.Make
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:344 +0x425
+
+goroutine 25 [chan receive, 9 minutes]:
+6.5840/raft.(*config).applier(0xc0000fa000, 0x2, 0x0?)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:168 +0x8d
+created by 6.5840/raft.(*config).start1
+	/Users/qt/Documents/App/golang/6.5840/src/raft/config.go:330 +0x62e
+
+goroutine 17859 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001acfd0?}, {0x11ee660, 0xc0001e5dc0}, {0x11ee6a0, 0xc00036a300})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0001e5dc0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17782 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0004867d0?}, {0x11ee660, 0xc0003840c0}, {0x11ee6a0, 0xc0001d02d0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0003840c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17884 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc00003efd0?}, {0x11ee660, 0xc00043a540}, {0x11ee6a0, 0xc0001d1920})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc00043a540)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17804 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0002ab7d0?}, {0x11ee660, 0xc0001e5840}, {0x11ee6a0, 0xc00038ce70})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0001e5840)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17844 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc00044cfd0?}, {0x11ee660, 0xc0003d32c0}, {0x11ee6a0, 0xc0001d1380})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0003d32c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17708 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001b17d0?}, {0x11ee660, 0xc0003072c0}, {0x11ee6a0, 0xc0004e9ef0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0003072c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17730 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001acfd0?}, {0x11ee660, 0xc0002a4ac0}, {0x11ee6a0, 0xc00030f350})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0002a4ac0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17848 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0004817d0?}, {0x11ee660, 0xc0003d3c40}, {0x11ee6a0, 0xc0001d13b0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0003d3c40)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17914 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001b17d0?}, {0x11ee660, 0xc0002bf3c0}, {0x11ee6a0, 0xc00040d290})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0002bf3c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17874 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc000446f48?}, {0x11ee660, 0xc0004110c0}, {0x11ee6a0, 0xc00036adb0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0004110c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17839 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc000446f48?}, {0x11ee660, 0xc00033d1c0}, {0x11ee6a0, 0xc00040c7e0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc00033d1c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17726 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0004867d0?}, {0x11ee660, 0xc000164ac0}, {0x11ee6a0, 0xc0004e9f50})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc000164ac0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17891 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0002ab7d0?}, {0x11ee660, 0xc00033d3c0}, {0x11ee6a0, 0xc0001d18c0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc00033d3c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17738 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0004867d0?}, {0x11ee660, 0xc0002a55c0}, {0x11ee6a0, 0xc0002b29f0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0002a55c0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17746 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc00022b7d0?}, {0x11ee660, 0xc000307dc0}, {0x11ee6a0, 0xc000391680})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc000307dc0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17880 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001b17d0?}, {0x11ee660, 0xc000411bc0}, {0x11ee6a0, 0xc0002b2f30})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc000411bc0)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17906 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0001b17d0?}, {0x11ee660, 0xc0002be140}, {0x11ee6a0, 0xc00040cd20})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc0002be140)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+
+goroutine 17894 [chan receive]:
+6.5840/labrpc.(*ClientEnd).Call(0xc0000de540, {0x123ced9?, 0xc0002ab7d0?}, {0x11ee660, 0xc00033dd40}, {0x11ee6a0, 0xc0001d18f0})
+	/Users/qt/Documents/App/golang/6.5840/src/labrpc/labrpc.go:112 +0x246
+6.5840/raft.(*Raft).appendEntryRpc(0xc0000fc1e0, 0x0, 0xc00033dd40)
+	/Users/qt/Documents/App/golang/6.5840/src/raft/append_entries.go:133 +0x9f
+created by 6.5840/raft.(*Raft).handleRpc
+	/Users/qt/Documents/App/golang/6.5840/src/raft/raft.go:208 +0x250
+exit status 2
+FAIL	6.5840/raft	600.772s

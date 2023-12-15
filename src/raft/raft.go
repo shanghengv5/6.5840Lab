@@ -33,7 +33,7 @@ import (
 )
 
 const HEARTBEAT = 200
-const SNAPSHOT_LOG_LEN = 80
+const SNAPSHOT_LOG_LEN = 50
 
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
