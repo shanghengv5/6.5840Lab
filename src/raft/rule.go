@@ -17,17 +17,18 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 
 }
 
-func (rf *Raft) SetLastIncludedIndex(index int, snapshot []byte) {
-	if index < rf.lastIncludedIndex {
+func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
+	if index-rf.lastIncludedIndex < SNAPSHOT_LOG_LEN {
 		return
 	}
+	DPrintf(dSnap, "S%d lastIncludedIndex%d lastApplied%d", rf.me, index, rf.lastApplied)
 	// SetNewSnapshot
 	newHead := []LogEntry{{Term: 0}}
 	rest := index + 1
 	if rest <= rf.getLastLogIndex() {
 		newHead = append(newHead, rf.getFractionLog(rest, -1)...)
 	}
-	rf.lastIncludedTerm = rf.getLogEntry(index).Term
+	rf.lastIncludedTerm = term
 	rf.lastIncludedIndex = index
 	rf.Logs = newHead
 	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
@@ -41,7 +42,7 @@ func (rf *Raft) SetLastIncludedIndex(index int, snapshot []byte) {
 			Snapshot:      snapshot,
 		})
 	}
-	DPrintf(dSnap, "S%d lastIncludedIndex%d lastApplied%d", rf.me, index, rf.lastApplied)
+
 }
 
 func (rf *Raft) SetCommitIndex(index int) {

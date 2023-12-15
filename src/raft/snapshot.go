@@ -44,7 +44,11 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 		rf.mu.Lock()
 		defer rf.mu.Unlock()
 		defer rf.persist()
-		rf.SetLastIncludedIndex(index, snapshot)
+		if rf.getLastLogIndex() > index {
+			term := rf.getLogEntry(index).Term
+			rf.SetLastIncludedIndex(index, term, snapshot)
+		}
+
 	}()
 
 }
@@ -71,7 +75,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 	if rf.aboveCurrentTerm(args.Term) {
 		return
 	}
-	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.Data)
+	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.LastIncludedTerm, args.Data)
 }
 
 func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
@@ -90,5 +94,5 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	if rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
-	rf.refreshMatchIndex(server, rf.lastIncludedIndex)
+	rf.refreshMatchIndex(server, args.LastIncludedIndex)
 }
