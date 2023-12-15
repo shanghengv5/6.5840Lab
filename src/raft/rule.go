@@ -5,14 +5,18 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
-	DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
+	// DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
+
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
-		rf.applyStateMachine(ApplyMsg{
-			Command:      rf.getLogEntry(applyIndex).Command,
-			CommandValid: true,
-			CommandIndex: applyIndex,
-		})
+		if rf.getLogIndex(applyIndex) > 0 {
+			rf.applyStateMachine(ApplyMsg{
+				Command:      rf.getLogEntry(applyIndex).Command,
+				CommandValid: true,
+				CommandIndex: applyIndex,
+			})
+		}
+
 	}
 
 }

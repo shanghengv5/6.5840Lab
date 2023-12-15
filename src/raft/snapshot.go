@@ -44,7 +44,7 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 		rf.mu.Lock()
 		defer rf.mu.Unlock()
 		defer rf.persist()
-		if rf.getLastLogIndex() > index {
+		if rf.getLogIndex(index) > 0 {
 			term := rf.getLogEntry(index).Term
 			rf.SetLastIncludedIndex(index, term, snapshot)
 		}
