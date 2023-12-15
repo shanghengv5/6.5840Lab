@@ -33,7 +33,7 @@ import (
 )
 
 const HEARTBEAT = 200
-const SNAPSHOT_LOG_LEN = 50
+const SNAPSHOT_LOG_LEN = 80
 
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -134,6 +134,7 @@ func (rf *Raft) persist() {
 	e.Encode(rf.votedFor)
 	e.Encode(rf.Logs)
 	e.Encode(rf.lastIncludedIndex)
+	e.Encode(rf.lastIncludedTerm)
 	raftstate := w.Bytes()
 	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
 }
@@ -150,23 +151,26 @@ func (rf *Raft) readPersist(data []byte) {
 	var currentTerm int
 	var votedFor int
 	var lastIncludedIndex int
+	var lastIncludedTerm int
 	var logs = []LogEntry{}
 	err1 := d.Decode(&currentTerm)
 	err2 := d.Decode(&votedFor)
-	err4 := d.Decode(&logs)
-	err3 := d.Decode(&lastIncludedIndex)
+	err3 := d.Decode(&logs)
+	err4 := d.Decode(&lastIncludedIndex)
+	err5 := d.Decode(&lastIncludedTerm)
 
 	if err1 != nil ||
 		err2 != nil ||
 		err3 != nil ||
-		err4 != nil {
-		fmt.Println(err1, err2, err3, err4)
+		err4 != nil ||
+		err5 != nil {
+		fmt.Println(err1, err2, err3, err4, err5)
 		panic("read persist error")
 	} else {
 		rf.currentTerm = currentTerm
 		rf.votedFor = votedFor
 		rf.Logs = logs
-		rf.lastIncludedIndex = lastIncludedIndex
+		rf.SetLastIncludedIndex(rf.lastIncludedIndex, rf.lastIncludedTerm, rf.persister.ReadSnapshot())
 	}
 }
 
@@ -187,7 +191,7 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 			LastIncludedIndex: rf.lastIncludedIndex,
 			LastIncludedTerm:  rf.lastIncludedTerm,
 			Offset:            0,
-			Data:              rf.persister.snapshot,
+			Data:              rf.persister.ReadSnapshot(),
 			Done:              true,
 		}
 		// call installSnapshot rpc
@@ -352,11 +356,6 @@ func (rf *Raft) initFollower() {
 	rf.Convert(Follower)
 	rf.votedFor = -1
 	rf.voteCount = 0
-}
-
-func (rf *Raft) initAllServerVolatile() {
-	rf.commitIndex = 0
-	rf.lastApplied = 0
 }
 
 func (rf *Raft) initLeaderVolatile() {

@@ -6,7 +6,6 @@ package raft
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
 	// DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
-
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
@@ -18,14 +17,25 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 		}
 
 	}
+}
 
+func (rf *Raft) refreshLastApplied(index int) bool {
+	if rf.lastApplied > index {
+		return false
+	}
+	rf.lastApplied = index
+	if rf.commitIndex < rf.lastApplied {
+		rf.commitIndex = index
+	}
+	return true
 }
 
 func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
-	if index-rf.lastIncludedIndex < SNAPSHOT_LOG_LEN {
+	//If the snapshot is oldest,return
+	if rf.lastIncludedIndex >= index {
 		return
 	}
-	DPrintf(dSnap, "S%d lastIncludedIndex%d lastApplied%d", rf.me, index, rf.lastApplied)
+	DPrintf(dSnap, "S%d Index%d lastApplied%d commitIndex%d", rf.me, index, rf.lastApplied, rf.commitIndex)
 	// SetNewSnapshot
 	newHead := []LogEntry{{Term: 0}}
 	rest := index + 1
@@ -37,8 +47,7 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 	rf.Logs = newHead
 	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
 	// If snapshot will update apply msg
-	if rf.lastApplied < rf.lastIncludedIndex {
-		rf.lastApplied = rf.lastIncludedIndex
+	if rf.refreshLastApplied(rf.lastIncludedIndex) {
 		rf.applyStateMachine(ApplyMsg{
 			SnapshotTerm:  rf.lastIncludedTerm,
 			SnapshotIndex: rf.lastIncludedIndex,
@@ -117,7 +126,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader ", rf.me)
+	DPrintf(dLeader, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
@@ -144,6 +153,9 @@ func (rf *Raft) getLastLogIndex() int {
 }
 
 func (rf *Raft) getLastLogTerm() int {
+	if rf.getLastLogIndex() == rf.lastIncludedIndex {
+		return rf.lastIncludedTerm
+	}
 	return rf.getLogEntry(rf.getLastLogIndex()).Term
 }
 
@@ -192,6 +204,8 @@ func (rf *Raft) existsNSetCommitIndex() {
 				// of the Log Matching Property. There are some situations
 				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
 				// for simplicity
+				voteCount++
+			} else if mI >= N && mI == rf.lastIncludedIndex && rf.currentTerm == rf.lastIncludedTerm {
 				voteCount++
 			}
 		}
