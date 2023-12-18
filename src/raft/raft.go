@@ -170,7 +170,7 @@ func (rf *Raft) readPersist(data []byte) {
 		rf.currentTerm = currentTerm
 		rf.votedFor = votedFor
 		rf.Logs = logs
-		rf.SetLastIncludedIndex(rf.lastIncludedIndex, rf.lastIncludedTerm, rf.persister.ReadSnapshot())
+		rf.SetLastIncludedIndex(lastIncludedIndex, lastIncludedTerm, rf.persister.ReadSnapshot())
 	}
 }
 

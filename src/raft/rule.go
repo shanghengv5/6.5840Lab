@@ -20,6 +20,9 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 }
 
 func (rf *Raft) refreshLastApplied(index int) bool {
+	if rf.state == Leader {
+		rf.refreshMatchIndex(rf.me, index)
+	}
 	if rf.lastApplied > index {
 		return false
 	}
