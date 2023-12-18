@@ -93,5 +93,10 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	if rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
-	rf.refreshMatchIndex(server, args.LastIncludedIndex)
+
+	if rf.matchIndex[server] < args.LastIncludedIndex {
+		rf.matchIndex[server] = args.LastIncludedIndex
+	}
+	rf.nextIndex[server] = rf.matchIndex[server] + 1
+	rf.existsNSetCommitIndex()
 }

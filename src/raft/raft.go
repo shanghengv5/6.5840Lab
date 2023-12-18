@@ -233,7 +233,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	defer rf.mu.Unlock()
 	defer rf.persist()
 	// Your code here (2B).
-	if rf.state != Leader {
+	if rf.state != Leader && !rf.killed() {
 		return rf.commitIndex, rf.currentTerm, false
 	}
 
@@ -242,7 +242,6 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-
 	return index, rf.currentTerm, true
 }
 

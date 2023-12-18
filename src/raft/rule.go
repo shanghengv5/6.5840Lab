@@ -5,7 +5,7 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
-	// DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
+	DPrintf(dApply, "S%d lastApplied%d commitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
@@ -126,12 +126,12 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-
+	DPrintf(dLeader, "S%d become a leader", rf.me)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
-
 	rf.broadcastAppendEntries()
+
 }
 
 // Leaders:
