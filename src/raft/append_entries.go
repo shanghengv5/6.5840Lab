@@ -110,6 +110,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
 	// DPrintf(dLeader, "S%d  lastIncludedIndex%d", rf.me, rf.lastIncludedIndex)
+	DPrintf(dLeader, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d matchIndex%v Term", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.currentTerm)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue

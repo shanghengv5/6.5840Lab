@@ -52,7 +52,7 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 			SnapshotTerm:  rf.lastIncludedTerm,
 			SnapshotIndex: rf.lastIncludedIndex,
 			SnapshotValid: true,
-			Snapshot:      snapshot,
+			Snapshot:      rf.persister.ReadSnapshot(),
 		})
 	}
 
@@ -126,10 +126,11 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex)
+
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
+
 	rf.broadcastAppendEntries()
 }
 
