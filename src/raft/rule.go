@@ -38,8 +38,8 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 		return
 	}
 	DPrintf(dSnap, "S%d Index%d lastApplied%d commitIndex%d", rf.me, index, rf.lastApplied, rf.commitIndex)
-	// SetNewSnapshot
-	newHead := []LogEntry{{Term: 0}}
+	// SetNewSnapshot Head with lastIncludeTerm
+	newHead := []LogEntry{{Term: term}}
 	rest := index + 1
 	if rest <= rf.getLastLogIndex() {
 		newHead = append(newHead, rf.getFractionLog(rest, -1)...)
@@ -156,9 +156,6 @@ func (rf *Raft) getLastLogIndex() int {
 }
 
 func (rf *Raft) getLastLogTerm() int {
-	if rf.getLastLogIndex() == rf.lastIncludedIndex {
-		return rf.lastIncludedTerm
-	}
 	return rf.getLogEntry(rf.getLastLogIndex()).Term
 }
 

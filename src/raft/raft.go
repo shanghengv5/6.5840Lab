@@ -185,7 +185,8 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // check snapshot call Index
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
-	if nextIndex < rf.lastIncludedIndex {
+	// snapshot
+	if rf.getLogIndex(nextIndex) < 0 {
 		snapArgs := InstallSnapshotArg{
 			Term:              args.Term,
 			LeaderId:          args.LeaderId,

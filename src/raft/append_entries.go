@@ -50,49 +50,45 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		reply.Success = false
 		return
 	}
-	DPrintf(dClient, "S%d AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex())
+	DPrintf(dClient, "S%d AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d EntriesLen%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex(), len(args.Entries))
 	// If AppendEntries RPC received from new leader: convert to follower
 	rf.currentTerm = args.Term
 	rf.initFollower()
 	rf.sendToChannel(rf.heartbeatCh, true)
 
-	// snapshot
-	if args.PrevLogIndex < rf.lastIncludedIndex {
-		return
-	}
-
-	// Reply false if log doesn’t contain an entry at prevLogIndex
-	// whose term matches prevLogTerm
-	if args.PrevLogIndex > rf.getLastLogIndex() {
-		reply.Success = false
-		reply.Term = rf.currentTerm
-		reply.XLen = rf.getLogLength()
-		return
-	}
-	// DPrintf(dClient, "S%d  leaderCommit%d commitIndex:%d Term:%d currentTerm%d prevIndex:%d prevLog%v argsPrevTerm:%d", rf.me, args.LeaderCommit, rf.commitIndex, args.Term, rf.currentTerm, args.PrevLogIndex, rf.Logs[args.PrevLogIndex], args.PrevLogTerm)
-	if rf.getLogEntry(args.PrevLogIndex).Term != args.PrevLogTerm {
-		reply.Success = false
-		reply.Term = rf.currentTerm
-		// term in the conflicting entry (if any)
-		reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
-		// index of first entry with that term (if any)
-		for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
-
+	// Non Snapshot
+	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
+		// Reply false if log doesn’t contain an entry at prevLogIndex
+		// whose term matches prevLogTerm
+		if args.PrevLogIndex > rf.getLastLogIndex() {
+			reply.Success = false
+			reply.Term = rf.currentTerm
+			reply.XLen = rf.getLogLength()
+			return
 		}
-		reply.XIndex++
-		return
-	}
+		if rf.getLogEntry(args.PrevLogIndex).Term != args.PrevLogTerm {
+			reply.Success = false
+			reply.Term = rf.currentTerm
+			// term in the conflicting entry (if any)
+			reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
+			// index of first entry with that term (if any)
+			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
 
-	newLogIndex := args.PrevLogIndex + 1
+			}
+			reply.XIndex++
+			return
+		}
 
-	//If an existing entry conflicts with a new one (same index
-	// but different terms), delete the existing entry and all that
-	// follow it (§5.3)
-	if rf.getLogLength() > newLogIndex {
-		rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
-	} else if rf.getLogLength() == newLogIndex {
-		// Append any new entries
-		rf.Logs = append(rf.Logs, args.Entries...)
+		newLogIndex := args.PrevLogIndex + 1
+		//If an existing entry conflicts with a new one (same index
+		// but different terms), delete the existing entry and all that
+		// follow it (§5.3)
+		if rf.getLogLength() > newLogIndex {
+			rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
+		} else if rf.getLogLength() == newLogIndex {
+			// Append any new entries
+			rf.Logs = append(rf.Logs, args.Entries...)
+		}
 	}
 
 	//  If leaderCommit > commitIndex, set commitIndex =
