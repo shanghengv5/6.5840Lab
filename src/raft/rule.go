@@ -34,7 +34,7 @@ func (rf *Raft) refreshLastApplied(index int) bool {
 
 func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 	//If the snapshot is oldest,return
-	if rf.lastIncludedIndex >= index {
+	if rf.getLogIndex(index) < 0 {
 		return
 	}
 	DPrintf(dSnap, "S%d Index%d lastApplied%d commitIndex%d", rf.me, index, rf.lastApplied, rf.commitIndex)

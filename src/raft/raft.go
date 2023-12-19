@@ -33,7 +33,7 @@ import (
 )
 
 const HEARTBEAT = 200
-const SNAPSHOT_LOG_LEN = 50
+const SNAPSHOT_LOG_LEN = 0
 
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -185,7 +185,7 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // check snapshot call Index
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
-	if nextIndex <= rf.lastIncludedIndex {
+	if nextIndex < rf.lastIncludedIndex {
 		snapArgs := InstallSnapshotArg{
 			Term:              args.Term,
 			LeaderId:          args.LeaderId,
@@ -199,7 +199,7 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 		go rf.installSnapshotRpc(server, &snapArgs)
 		return
 	}
-	if rf.getLastLogIndex() >= nextIndex {
+	if rf.getLogIndex(nextIndex) >= 1 {
 		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
 		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
 		args.PrevLogIndex = nextIndex - 1
