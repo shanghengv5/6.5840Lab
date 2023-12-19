@@ -15,8 +15,9 @@ type logTopic string
 
 const (
 	dClient     logTopic = "CLNT"
+	dAppend     logTopic = "APPEND_ENTRIES"
 	dCommit     logTopic = "CMIT"
-	dRefresh     logTopic = "REFRESH"
+	dRefresh    logTopic = "REFRESH"
 	dStart      logTopic = "START"
 	dApply      logTopic = "APPLY"
 	dDrop       logTopic = "DROP"

@@ -105,7 +105,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
-	DPrintf(dLeader, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm)
+	DPrintf(dAppend, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
@@ -117,8 +117,6 @@ func (rf *Raft) broadcastAppendEntries() {
 			Term:         rf.currentTerm,
 			LeaderCommit: rf.commitIndex,
 			Entries:      make([]LogEntry, 0),
-			PrevLogIndex: rf.getLastLogIndex(),
-			PrevLogTerm:  rf.getLastLogTerm(),
 		}
 		rf.handleRpc(server, &args)
 	}

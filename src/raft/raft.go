@@ -199,12 +199,16 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 		// call installSnapshot rpc
 		go rf.installSnapshotRpc(server, &snapArgs)
 		return
-	}
-	if rf.getLogIndex(nextIndex) >= 1 {
+	} else if rf.getLogIndex(nextIndex) >= 1 {
 		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
 		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
 		args.PrevLogIndex = nextIndex - 1
 		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
+	} else if rf.getLogIndex(nextIndex) == 0 {
+		// Heartbeat
+		args.Entries = make([]LogEntry, 0)
+		args.PrevLogIndex = rf.getLastLogIndex()
+		args.PrevLogTerm = rf.getLastLogTerm()
 	}
 	go rf.appendEntryRpc(server, args)
 }

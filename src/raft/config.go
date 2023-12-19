@@ -158,7 +158,7 @@ func (cfg *config) checkLogs(i int, m ApplyMsg) (string, bool) {
 	if m.CommandIndex > cfg.maxIndex {
 		cfg.maxIndex = m.CommandIndex
 	}
-	// DPrintf(dTest, "commit index=%v server=%v %v Logs:%v\n", m.CommandIndex, i, v, cfg.logs[i])
+
 	return err_msg, prevok
 }
 
