@@ -356,6 +356,9 @@ func (rf *Raft) initChannel() {
 }
 
 func (rf *Raft) initFollower() {
+	if rf.state == Follower {
+		return
+	}
 	rf.Convert(Follower)
 	rf.votedFor = -1
 	rf.voteCount = 0

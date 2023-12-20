@@ -24,16 +24,16 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	defer rf.mu.Unlock()
 	defer rf.persist()
 	reply.Term = rf.currentTerm
-
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm {
 		return
 	}
 
-	if rf.aboveCurrentTerm(args.Term) && rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
+	if rf.aboveCurrentTerm(args.Term) &&
+		rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.grantingVote(args.CandidateId)
-		reply.VoteGranted = true
 		reply.Term = rf.currentTerm
+		reply.VoteGranted = true
 		return
 	}
 
@@ -41,7 +41,6 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 // If votedFor is null or candidateId, and candidate’s log is at
 // least as up-to-date as receiver’s log, grant vote (§5.2, §5.4)
-
 func (rf *Raft) grantVoteCheck(candidateId, lastIndex, lastTerm int) bool {
 	if (rf.votedFor == -1 || rf.votedFor == candidateId) &&
 		rf.logMoreUpToDate(lastIndex, lastTerm) {

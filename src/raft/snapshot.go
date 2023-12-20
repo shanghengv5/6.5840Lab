@@ -44,9 +44,10 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 		rf.mu.Lock()
 		defer rf.mu.Unlock()
 		defer rf.persist()
-		if rf.getLogIndex(index) > SNAPSHOT_LOG_LEN {
-			rf.SetLastIncludedIndex(index, rf.getLogEntry(index).Term, snapshot)
+		if rf.getLogIndex(index) < SNAPSHOT_LOG_LEN {
+			return
 		}
+		rf.SetLastIncludedIndex(index, rf.getLogEntry(index).Term, snapshot)
 	}()
 
 }

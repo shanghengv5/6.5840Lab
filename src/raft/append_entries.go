@@ -43,15 +43,11 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	defer rf.persist()
 
 	reply.Term = rf.currentTerm
-	if args.Term < rf.currentTerm {
+	if args.Term < rf.currentTerm || rf.aboveCurrentTerm(args.Term) {
 		return
 	}
-	rf.sendToChannel(rf.heartbeatCh, true)
-	DPrintf(dClient, "S%d AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d EntriesLen%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex(), len(args.Entries))
-	// If AppendEntries RPC received from new leader: convert to follower
-	if rf.aboveCurrentTerm(args.Term) {
-		return
-	}
+	DPrintf(dClient, "S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d EntriesLen%d", rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex(), len(args.Entries))
+	rf.followerRespond()
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {

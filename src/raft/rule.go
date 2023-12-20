@@ -74,7 +74,7 @@ func (rf *Raft) applyStateMachine(msg ApplyMsg) {
 func (rf *Raft) aboveCurrentTerm(term int) (shouldReturn bool) {
 	if term > rf.currentTerm {
 		rf.currentTerm = term
-		rf.initFollower()
+		rf.followerRespond()
 		shouldReturn = true
 	}
 	return
@@ -85,6 +85,11 @@ func (rf *Raft) aboveCurrentTerm(term int) (shouldReturn bool) {
 // • If election timeout elapses without receiving AppendEntries
 // RPC from current leader or granting vote to candidate:
 // convert to candidate
+
+func (rf *Raft) followerRespond() {
+	rf.initFollower()
+	rf.sendToChannel(rf.heartbeatCh, true)
+}
 
 // granting vote to candidate: convert to candidate
 func (rf *Raft) grantingVote(voteFor int) {
