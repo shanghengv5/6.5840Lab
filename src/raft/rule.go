@@ -128,7 +128,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader", rf.me)
+	DPrintf(dLeader, "S%d become a leader term%d", rf.me, rf.currentTerm)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()

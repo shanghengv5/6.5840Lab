@@ -138,4 +138,5 @@ func (rf *Raft) broadcastRequestVote() {
 		}
 		go rf.requestVoteRpc(server, &arg)
 	}
+	DPrintf(dVote, "S%d start vote Term:%d", rf.me, rf.currentTerm)
 }
