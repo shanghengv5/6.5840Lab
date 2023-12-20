@@ -132,12 +132,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	defer rf.mu.Unlock()
 	defer rf.persist()
 	// idempotent
-	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
+	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm || rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
-	if rf.aboveCurrentTerm(reply.Term) {
-		return
-	}
+
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)

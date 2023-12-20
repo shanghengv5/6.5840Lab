@@ -70,8 +70,8 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 	if args.Term < rf.currentTerm {
 		return
 	}
-	rf.currentTerm = args.Term
 	DPrintf(dClient, "S%d InstallSnapshot lastApplied%d CommitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
+	rf.aboveCurrentTerm(args.Term)
 	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.LastIncludedTerm, args.Data)
 }
 
@@ -85,10 +85,7 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	defer rf.mu.Unlock()
 	defer rf.persist()
 	// idempotent
-	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm {
-		return
-	}
-	if rf.aboveCurrentTerm(reply.Term) {
+	if rf.state != Leader || args.Term != rf.currentTerm || rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
 	rf.refreshMatchIndex(server, args.LastIncludedIndex)
