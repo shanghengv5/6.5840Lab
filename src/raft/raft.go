@@ -182,11 +182,11 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 	}
 }
 
-// check snapshot call Index
+// check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
 	// snapshot
-	if rf.getLogIndex(nextIndex) < 0 {
+	if rf.getLogIndex(nextIndex) <= 0 {
 		snapArgs := InstallSnapshotArg{
 			Term:              args.Term,
 			LeaderId:          args.LeaderId,
@@ -196,19 +196,17 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 			Data:              rf.persister.ReadSnapshot(),
 			Done:              true,
 		}
-		// call installSnapshot rpc
-		go rf.installSnapshotRpc(server, &snapArgs)
-		return
-	} else if rf.getLogIndex(nextIndex) >= 1 {
-		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
-		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
-		args.PrevLogIndex = nextIndex - 1
-		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
-	} else if rf.getLogIndex(nextIndex) == 0 {
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
 		args.PrevLogIndex = rf.getLastLogIndex()
 		args.PrevLogTerm = rf.getLastLogTerm()
+		// call installSnapshot rpc
+		go rf.installSnapshotRpc(server, &snapArgs)
+	} else {
+		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
+		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
+		args.PrevLogIndex = nextIndex - 1
+		args.PrevLogTerm = rf.getLogEntry(args.PrevLogIndex).Term
 	}
 	go rf.appendEntryRpc(server, args)
 }
@@ -271,7 +269,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 250 + (rand.Int63() % HEARTBEAT)
+	ms := HEARTBEAT + 400 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 

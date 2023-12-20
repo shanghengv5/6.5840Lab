@@ -71,8 +71,6 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 		return
 	}
 	rf.currentTerm = args.Term
-	rf.initFollower()
-	rf.sendToChannel(rf.heartbeatCh, true)
 	DPrintf(dClient, "S%d InstallSnapshot lastApplied%d CommitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.LastIncludedTerm, args.Data)
 }
