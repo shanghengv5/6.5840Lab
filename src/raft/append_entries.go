@@ -38,37 +38,30 @@ type LogEntry struct {
 // 5. If leaderCommit > commitIndex, set commitIndex =
 // min(leaderCommit, index of last new entry)
 func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply) {
-	reply.Success = true
-	reply.Term = args.Term
-
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
 
+	reply.Term = rf.currentTerm
 	if args.Term < rf.currentTerm {
-		reply.Term = rf.currentTerm
-		reply.Success = false
 		return
 	}
+	rf.sendToChannel(rf.heartbeatCh, true)
 	DPrintf(dClient, "S%d AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d EntriesLen%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex(), len(args.Entries))
 	// If AppendEntries RPC received from new leader: convert to follower
-	rf.currentTerm = args.Term
-	rf.initFollower()
-	rf.sendToChannel(rf.heartbeatCh, true)
+	if rf.aboveCurrentTerm(args.Term) {
+		return
+	}
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
 		// Reply false if log doesn’t contain an entry at prevLogIndex
 		// whose term matches prevLogTerm
 		if args.PrevLogIndex > rf.getLastLogIndex() {
-			reply.Success = false
-			reply.Term = rf.currentTerm
 			reply.XLen = rf.getLogLength()
 			return
 		}
 		if rf.getLogEntry(args.PrevLogIndex).Term != args.PrevLogTerm {
-			reply.Success = false
-			reply.Term = rf.currentTerm
 			// term in the conflicting entry (if any)
 			reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
 			// index of first entry with that term (if any)
@@ -100,6 +93,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			rf.SetCommitIndex(args.LeaderCommit)
 		}
 	}
+	reply.Success = true
 }
 
 // (heartbeat) to each server; repeat during idle periods to

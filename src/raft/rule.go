@@ -121,6 +121,7 @@ func (rf *Raft) startElection(fromState State) {
 }
 
 func (rf *Raft) voteMajorities() bool {
+	rf.voteCount++
 	return rf.voteCount >= rf.majority/2+1
 }
 

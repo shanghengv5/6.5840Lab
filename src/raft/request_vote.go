@@ -20,22 +20,20 @@ type RequestVoteReply struct {
 
 // example RequestVote RPC handler.
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	reply.VoteGranted = false
-	reply.Term = args.Term
-
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
+	reply.Term = rf.currentTerm
 
 	// Your code here (2A, 2B).
 	if args.Term < rf.currentTerm {
-		reply.Term = rf.currentTerm
 		return
 	}
 
 	if rf.aboveCurrentTerm(args.Term) && rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.grantingVote(args.CandidateId)
 		reply.VoteGranted = true
+		reply.Term = rf.currentTerm
 		return
 	}
 
@@ -106,20 +104,13 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 	defer rf.mu.Unlock()
 	defer rf.persist()
 
-	if args.Term != rf.currentTerm || rf.state != Candidate || rf.currentTerm > reply.Term {
-		return
-	}
-	if rf.aboveCurrentTerm(reply.Term) {
+	if reply.Term < rf.currentTerm || rf.state != Candidate || args.Term != rf.currentTerm || rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
 
 	// If votes received from majority of servers: become leader
-	if reply.VoteGranted {
-		rf.voteCount++
-		if rf.voteMajorities() {
-			rf.becomeLeader()
-			return
-		}
+	if reply.VoteGranted && rf.voteMajorities() {
+		rf.becomeLeader()
 	}
 
 }
