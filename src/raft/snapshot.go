@@ -88,5 +88,4 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm || rf.aboveCurrentTerm(reply.Term) {
 		return
 	}
-	rf.refreshMatchIndex(server, args.LastIncludedIndex)
 }

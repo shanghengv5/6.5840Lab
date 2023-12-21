@@ -212,6 +212,9 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 }
 
 func (rf *Raft) refreshMatchIndex(server int, index int) {
+	// leader update itself first
+	rf.matchIndex[rf.me] = rf.getLastLogIndex()
+	rf.nextIndex[rf.me] = rf.matchIndex[rf.me] + 1
 	if rf.matchIndex[server] > index {
 		return
 	}
@@ -363,18 +366,4 @@ func (rf *Raft) initFollower() {
 	rf.Convert(Follower)
 	rf.votedFor = -1
 	rf.voteCount = 0
-}
-
-func (rf *Raft) initLeaderVolatile() {
-	for server := range rf.peers {
-		//for each server, index of the next log entry
-		// to send to that server (initialized to leader
-		// 	last log index + 1)
-		rf.nextIndex[server] = rf.commitIndex + 1
-		//for each server, index of highest log entry
-		// known to be replicated on server
-		// (initialized to 0, increases monotonically)
-		rf.matchIndex[server] = 0
-	}
-	rf.refreshMatchIndex(rf.me, rf.getLastLogIndex())
 }
