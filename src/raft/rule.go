@@ -59,7 +59,6 @@ func (rf *Raft) SetCommitIndex(index int) {
 }
 
 func (rf *Raft) applyStateMachine(msg ApplyMsg) {
-	// DPrintf(dApply, "S%d lastApplied%d commitIndex%d Role:%s Msg%v", rf.me, rf.lastApplied, rf.commitIndex, rf.state, msg)
 	rf.applyCh <- msg
 }
 

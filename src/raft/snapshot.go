@@ -48,6 +48,7 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 			return
 		}
 		rf.SetLastIncludedIndex(index, rf.getLogEntry(index).Term, snapshot)
+		
 	}()
 
 }

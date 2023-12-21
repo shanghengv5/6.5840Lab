@@ -184,24 +184,24 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 
 // check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
+	snapArgs := InstallSnapshotArg{
+		Term:              args.Term,
+		LeaderId:          args.LeaderId,
+		LastIncludedIndex: rf.lastIncludedIndex,
+		LastIncludedTerm:  rf.lastIncludedTerm,
+		Offset:            0,
+		Data:              rf.persister.ReadSnapshot(),
+		Done:              true,
+	}
+	// always call installSnapshot rpc
+	go rf.installSnapshotRpc(server, &snapArgs)
 	nextIndex := rf.nextIndex[server]
 	// snapshot
 	if rf.getLogIndex(nextIndex) <= 0 {
-		snapArgs := InstallSnapshotArg{
-			Term:              args.Term,
-			LeaderId:          args.LeaderId,
-			LastIncludedIndex: rf.lastIncludedIndex,
-			LastIncludedTerm:  rf.lastIncludedTerm,
-			Offset:            0,
-			Data:              rf.persister.ReadSnapshot(),
-			Done:              true,
-		}
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
 		args.PrevLogIndex = rf.getLastLogIndex()
 		args.PrevLogTerm = rf.getLastLogTerm()
-		// call installSnapshot rpc
-		go rf.installSnapshotRpc(server, &snapArgs)
 	} else {
 		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
 		copy(args.Entries, rf.getFractionLog(nextIndex, -1))
@@ -220,7 +220,6 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	}
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
-
 	rf.existsNSetCommitIndex()
 }
 
