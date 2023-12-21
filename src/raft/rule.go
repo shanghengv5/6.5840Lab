@@ -130,8 +130,8 @@ func (rf *Raft) becomeLeader() {
 	DPrintf(dLeader, "S%d become a leader term%d", rf.me, rf.currentTerm)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
-	// rf.initLeaderVolatile()
-	rf.broadcastAppendEntries()
+	rf.initLeaderVolatile()
+	rf.sendToChannel(rf.sendAppendEntries, true)
 }
 
 // Leaders:
@@ -208,5 +208,12 @@ func (rf *Raft) existsNSetCommitIndex() {
 		if voteCount >= rf.majority/2+1 {
 			rf.SetCommitIndex(N)
 		}
+	}
+}
+
+func (rf *Raft) initLeaderVolatile() {
+	for server := range rf.peers {
+		rf.matchIndex[server] = rf.commitIndex
+		rf.nextIndex[server] = rf.getLastLogIndex() + 1
 	}
 }

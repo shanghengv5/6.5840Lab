@@ -78,18 +78,20 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			// Append any new entries
 			rf.Logs = append(rf.Logs, args.Entries...)
 		}
+		//  If leaderCommit > commitIndex, set commitIndex =
+		//min(leaderCommit, index of last new entry)
+		if args.LeaderCommit > rf.commitIndex {
+			if args.LeaderCommit >= rf.getLastLogIndex() {
+				rf.SetCommitIndex(rf.getLastLogIndex())
+			} else {
+				rf.SetCommitIndex(args.LeaderCommit)
+			}
+		}
+		reply.Success = true
+	} else {
+		DPrintf(dWarn, "Error Append rpc")
 	}
 
-	//  If leaderCommit > commitIndex, set commitIndex =
-	//min(leaderCommit, index of last new entry)
-	if args.LeaderCommit > rf.commitIndex {
-		if args.LeaderCommit >= rf.getLastLogIndex() {
-			rf.SetCommitIndex(rf.getLastLogIndex())
-		} else {
-			rf.SetCommitIndex(args.LeaderCommit)
-		}
-	}
-	reply.Success = true
 }
 
 // (heartbeat) to each server; repeat during idle periods to

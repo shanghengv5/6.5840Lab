@@ -48,7 +48,6 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 			return
 		}
 		rf.SetLastIncludedIndex(index, rf.getLogEntry(index).Term, snapshot)
-		
 	}()
 
 }
@@ -88,5 +87,24 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 	// idempotent
 	if reply.Term < rf.currentTerm || rf.state != Leader || args.Term != rf.currentTerm || rf.aboveCurrentTerm(reply.Term) {
 		return
+	}
+}
+
+func (rf *Raft) broadcastInstallSnapshot() {
+	snapArgs := InstallSnapshotArg{
+		Term:              rf.currentTerm,
+		LeaderId:          rf.me,
+		LastIncludedIndex: rf.lastIncludedIndex,
+		LastIncludedTerm:  rf.lastIncludedTerm,
+		Offset:            0,
+		Data:              rf.persister.ReadSnapshot(),
+		Done:              true,
+	}
+	for server := range rf.peers {
+		if server == rf.me {
+			continue
+		}
+		// always call installSnapshot rpc
+		go rf.installSnapshotRpc(server, &snapArgs)
 	}
 }

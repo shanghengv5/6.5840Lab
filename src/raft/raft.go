@@ -32,7 +32,7 @@ import (
 	"6.5840/labrpc"
 )
 
-const HEARTBEAT = 200
+const HEARTBEAT = 210
 const SNAPSHOT_LOG_LEN = 0
 
 // as each Raft peer becomes aware that successive log entries are
@@ -71,10 +71,12 @@ type Raft struct {
 
 	// state a Raft server must maintain.
 	// Channel
-	heartbeatCh        chan bool
-	convertLeaderCh    chan bool
-	convertFollowerCh  chan bool
-	convertCandidateCh chan bool
+	heartbeatCh         chan bool
+	convertLeaderCh     chan bool
+	convertFollowerCh   chan bool
+	convertCandidateCh  chan bool
+	sendAppendEntries   chan bool
+	sendInstallSnapshot chan bool
 
 	applyCh chan ApplyMsg
 
@@ -184,20 +186,21 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 
 // check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
-	snapArgs := InstallSnapshotArg{
-		Term:              args.Term,
-		LeaderId:          args.LeaderId,
-		LastIncludedIndex: rf.lastIncludedIndex,
-		LastIncludedTerm:  rf.lastIncludedTerm,
-		Offset:            0,
-		Data:              rf.persister.ReadSnapshot(),
-		Done:              true,
-	}
-	// always call installSnapshot rpc
-	go rf.installSnapshotRpc(server, &snapArgs)
+	// snapArgs := InstallSnapshotArg{
+	// 	Term:              args.Term,
+	// 	LeaderId:          args.LeaderId,
+	// 	LastIncludedIndex: rf.lastIncludedIndex,
+	// 	LastIncludedTerm:  rf.lastIncludedTerm,
+	// 	Offset:            0,
+	// 	Data:              rf.persister.ReadSnapshot(),
+	// 	Done:              true,
+	// }
+	// // always call installSnapshot rpc
+	// go rf.installSnapshotRpc(server, &snapArgs)
 	nextIndex := rf.nextIndex[server]
-	// snapshot
 	if rf.getLogIndex(nextIndex) <= 0 {
+		// snapshot
+		rf.sendToChannel(rf.sendInstallSnapshot, true)
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
 		args.PrevLogIndex = rf.getLastLogIndex()
@@ -248,7 +251,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	// rf.refreshMatchIndex(rf.me, index)
+	rf.sendToChannel(rf.sendAppendEntries, true)
 	return index, rf.currentTerm, true
 }
 
@@ -272,7 +275,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 250 + (rand.Int63() % HEARTBEAT)
+	ms := HEARTBEAT + 50 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 
@@ -302,6 +305,14 @@ func (rf *Raft) ticker() {
 			}
 		case Leader:
 			select {
+			case <-rf.sendAppendEntries:
+				rf.mu.Lock()
+				rf.broadcastAppendEntries()
+				rf.mu.Unlock()
+			case <-rf.sendInstallSnapshot:
+				rf.mu.Lock()
+				rf.broadcastInstallSnapshot()
+				rf.mu.Unlock()
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
@@ -356,6 +367,8 @@ func (rf *Raft) initChannel() {
 	rf.convertFollowerCh = make(chan bool)
 	rf.convertLeaderCh = make(chan bool)
 	rf.convertCandidateCh = make(chan bool)
+	rf.sendAppendEntries = make(chan bool)
+	rf.sendInstallSnapshot = make(chan bool)
 }
 
 func (rf *Raft) initFollower() {
