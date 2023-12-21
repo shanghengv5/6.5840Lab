@@ -186,17 +186,6 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 
 // check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
-	// snapArgs := InstallSnapshotArg{
-	// 	Term:              args.Term,
-	// 	LeaderId:          args.LeaderId,
-	// 	LastIncludedIndex: rf.lastIncludedIndex,
-	// 	LastIncludedTerm:  rf.lastIncludedTerm,
-	// 	Offset:            0,
-	// 	Data:              rf.persister.ReadSnapshot(),
-	// 	Done:              true,
-	// }
-	// // always call installSnapshot rpc
-	// go rf.installSnapshotRpc(server, &snapArgs)
 	nextIndex := rf.nextIndex[server]
 	if rf.getLogIndex(nextIndex) <= 0 {
 		// snapshot
