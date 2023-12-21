@@ -269,7 +269,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 400 + (rand.Int63() % HEARTBEAT)
+	ms := HEARTBEAT + 250 + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 

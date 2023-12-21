@@ -137,9 +137,8 @@ func (rf *Raft) becomeLeader() {
 	DPrintf(dLeader, "S%d become a leader term%d", rf.me, rf.currentTerm)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
-	rf.initLeaderVolatile()
+	// rf.initLeaderVolatile()
 	rf.broadcastAppendEntries()
-
 }
 
 // Leaders:
