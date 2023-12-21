@@ -19,16 +19,10 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 }
 
 func (rf *Raft) refreshLastApplied(index int) bool {
-	if rf.state == Leader {
-		rf.refreshMatchIndex(rf.me, index)
-	}
 	if rf.lastApplied >= index {
 		return false
 	}
 	rf.lastApplied = index
-	if rf.commitIndex < rf.lastApplied {
-		rf.commitIndex = index
-	}
 	return true
 }
 
@@ -48,7 +42,7 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 	rf.lastIncludedIndex = index
 	rf.Logs = newHead
 	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
-	// If snapshot will update apply msg
+	// If snapshot need update apply msg
 	if rf.refreshLastApplied(rf.lastIncludedIndex) {
 		rf.applyStateMachine(ApplyMsg{
 			SnapshotTerm:  rf.lastIncludedTerm,
