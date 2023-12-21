@@ -217,6 +217,7 @@ func (rf *Raft) refreshMatchIndex(server int, index int) {
 	}
 	rf.matchIndex[server] = index
 	rf.nextIndex[server] = rf.matchIndex[server] + 1
+
 	rf.existsNSetCommitIndex()
 }
 
@@ -245,7 +246,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	rf.refreshMatchIndex(rf.me, index)
+	// rf.refreshMatchIndex(rf.me, index)
 	return index, rf.currentTerm, true
 }
 

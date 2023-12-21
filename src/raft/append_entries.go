@@ -129,6 +129,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
+		rf.refreshMatchIndex(rf.me, rf.getLastLogIndex())
 		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
 		//Case 1: leader doesn't have XTerm:

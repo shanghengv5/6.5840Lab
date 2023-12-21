@@ -210,8 +210,6 @@ func (rf *Raft) existsNSetCommitIndex() {
 				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
 				// for simplicity
 				voteCount++
-			} else if mI >= N && mI == rf.lastIncludedIndex && rf.currentTerm == rf.lastIncludedTerm {
-				voteCount++
 			}
 		}
 		if voteCount >= rf.majority/2+1 {
