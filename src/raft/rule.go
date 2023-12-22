@@ -88,6 +88,7 @@ func (rf *Raft) followerRespond() {
 func (rf *Raft) grantingVote(voteFor int) {
 	rf.votedFor = voteFor
 	rf.Convert(Candidate)
+	rf.voteCount = 1
 }
 
 // Candidates:
@@ -112,10 +113,8 @@ func (rf *Raft) startElection(fromState State) {
 
 	rf.grantingVote(rf.me)
 	rf.currentTerm++
-	rf.voteCount = 1
-
 	rf.broadcastRequestVote()
-	// DPrintf(dVote, "S%d fromState %s start election", rf.me, fromState)
+
 }
 
 func (rf *Raft) voteMajorities() bool {
@@ -127,7 +126,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader term%d", rf.me, rf.currentTerm)
+	DPrintf(dLeader, "S%d become a leader term%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()

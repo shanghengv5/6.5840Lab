@@ -116,6 +116,7 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 
 // Send RequestVote RPCs to all other servers
 func (rf *Raft) broadcastRequestVote() {
+	DPrintf(dVote, "S%d start vote Term:%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	arg := RequestVoteArgs{
 		Term:         rf.currentTerm,
 		CandidateId:  rf.me,
@@ -128,5 +129,4 @@ func (rf *Raft) broadcastRequestVote() {
 		}
 		go rf.requestVoteRpc(server, &arg)
 	}
-	DPrintf(dVote, "S%d start vote Term:%d", rf.me, rf.currentTerm)
 }
