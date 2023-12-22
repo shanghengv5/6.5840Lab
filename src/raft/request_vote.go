@@ -31,7 +31,8 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 	if rf.aboveCurrentTerm(args.Term) &&
 		rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
-		rf.grantingVote(args.CandidateId)
+		rf.initFollower()
+		rf.votedFor = args.CandidateId
 		reply.Term = rf.currentTerm
 		reply.VoteGranted = true
 		return
