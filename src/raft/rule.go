@@ -5,10 +5,10 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
-	DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex())
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
+			DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d applyIndex%d entry%v", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex(), applyIndex, rf.getLogEntry(applyIndex))
 			rf.applyStateMachine(ApplyMsg{
 				Command:      rf.getLogEntry(applyIndex).Command,
 				CommandValid: true,
@@ -56,6 +56,9 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 }
 
 func (rf *Raft) SetCommitIndex(index int) {
+	if index <= rf.commitIndex {
+		return
+	}
 	rf.commitIndex = index
 }
 
@@ -191,12 +194,14 @@ func (rf *Raft) getLogIndex(index int) int {
 // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 // set commitIndex = N (§5.3, §5.4).
 func (rf *Raft) existsNSetCommitIndex() {
-	for N := rf.commitIndex + 1; N <= rf.getLastLogIndex(); N++ {
+	for _, N := range rf.matchIndex {
 		voteCount := 0
-		for _, mI := range rf.matchIndex {
-			if mI <= rf.getLastLogIndex() &&
-				mI >= N &&
-				rf.getLogEntry(mI).Term == rf.currentTerm {
+		if N <= rf.commitIndex || N > rf.getLastLogIndex() || rf.getLogEntry(N).Term != rf.currentTerm {
+			continue
+		}
+		// check voteCount
+		for _, mIdx := range rf.matchIndex {
+			if mIdx >= N {
 				// To eliminate problems like the one in Figure 8, Raft
 				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
 				// term are committed by counting replicas; once an entry
@@ -212,6 +217,7 @@ func (rf *Raft) existsNSetCommitIndex() {
 			rf.SetCommitIndex(N)
 		}
 	}
+
 }
 
 func (rf *Raft) initLeaderVolatile() {
