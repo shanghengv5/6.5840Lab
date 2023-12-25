@@ -46,7 +46,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	if args.Term < rf.currentTerm || rf.aboveCurrentTerm(args.Term) {
 		return
 	}
-	DPrintf(dClient, "S%d => S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, rf.getLastLogIndex(), len(args.Entries))
+	DPrintf(dClient, "S%d => S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
 	rf.followerRespond()
 
 	// Non Snapshot
@@ -54,6 +54,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		// Reply false if log doesn’t contain an entry at prevLogIndex
 		// whose term matches prevLogTerm
 		if args.PrevLogIndex > rf.getLastLogIndex() {
+			//follower's log is too short
 			reply.XLen = rf.getLogLength()
 			return
 		}

@@ -367,3 +367,13 @@ func (rf *Raft) initFollower() {
 	rf.votedFor = -1
 	rf.voteCount = 0
 }
+
+func (rf *Raft) initLeaderVolatile() {
+	for server := range rf.peers {
+		rf.matchIndex[server] = 0
+		if server == rf.me {
+			rf.matchIndex[server] = rf.commitIndex
+		}
+		rf.nextIndex[server] = rf.commitIndex + 1
+	}
+}

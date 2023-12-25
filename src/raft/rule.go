@@ -136,7 +136,7 @@ func (rf *Raft) becomeLeader() {
 	DPrintf(dLeader, "S%d become a leader term%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	rf.Convert(Leader)
 	// (Reinitialized after election)
-	rf.initLeaderVolatile()
+	// rf.initLeaderVolatile()
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 }
 
@@ -197,19 +197,19 @@ func (rf *Raft) existsNSetCommitIndex() {
 	for _, N := range rf.matchIndex {
 		voteCount := 0
 		if N <= rf.commitIndex || N > rf.getLastLogIndex() || rf.getLogEntry(N).Term != rf.currentTerm {
+			// To eliminate problems like the one in Figure 8, Raft
+			// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
+			// term are committed by counting replicas; once an entry
+			// from the current term has been committed in this way,
+			// then all prior entries are committed indirectly because
+			// of the Log Matching Property. There are some situations
+			// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
+			// for simplicity
 			continue
 		}
-		// check voteCount
+		// incr voteCount
 		for _, mIdx := range rf.matchIndex {
 			if mIdx >= N {
-				// To eliminate problems like the one in Figure 8, Raft
-				// never commits log entries from previous terms by counting replicas. Only log entries from the leader’s current
-				// term are committed by counting replicas; once an entry
-				// from the current term has been committed in this way,
-				// then all prior entries are committed indirectly because
-				// of the Log Matching Property. There are some situations
-				// where a leader could safely conclude that an older log entry is committed (for example, if that entry is stored on every server), but Raft takes a more conservative approach
-				// for simplicity
 				voteCount++
 			}
 		}
@@ -218,14 +218,4 @@ func (rf *Raft) existsNSetCommitIndex() {
 		}
 	}
 
-}
-
-func (rf *Raft) initLeaderVolatile() {
-	for server := range rf.peers {
-		rf.matchIndex[server] = 0
-		if server == rf.me {
-			rf.matchIndex[server] = rf.commitIndex
-		}
-		rf.nextIndex[server] = rf.getLastLogIndex() + 1
-	}
 }
