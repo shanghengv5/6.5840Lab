@@ -5,6 +5,7 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
+	DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex())
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
@@ -81,7 +82,7 @@ func (rf *Raft) aboveCurrentTerm(term int) (shouldReturn bool) {
 
 func (rf *Raft) followerRespond() {
 	rf.initFollower()
-	rf.sendToChannel(rf.heartbeatCh, true)
+	rf.sendToChannel(rf.resetTimeElectionCh, true)
 }
 
 // granting vote to candidate: convert to candidate
@@ -110,10 +111,13 @@ func (rf *Raft) startElection(fromState State) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-
-	rf.grantingVote(rf.me)
-	rf.currentTerm++
-	rf.broadcastRequestVote()
+	if rf.votedFor == -1 || rf.votedFor == rf.me {
+		rf.grantingVote(rf.me)
+		rf.currentTerm++
+		rf.broadcastRequestVote()
+	} else {
+		rf.initFollower()
+	}
 
 }
 
@@ -130,7 +134,7 @@ func (rf *Raft) becomeLeader() {
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()
-	rf.sendToChannel(rf.sendAppendEntries, true)
+	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 }
 
 // Leaders:
@@ -212,7 +216,10 @@ func (rf *Raft) existsNSetCommitIndex() {
 
 func (rf *Raft) initLeaderVolatile() {
 	for server := range rf.peers {
-		rf.matchIndex[server] = rf.commitIndex
+		rf.matchIndex[server] = 0
+		if server == rf.me {
+			rf.matchIndex[server] = rf.commitIndex
+		}
 		rf.nextIndex[server] = rf.getLastLogIndex() + 1
 	}
 }

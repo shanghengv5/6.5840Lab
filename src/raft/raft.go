@@ -71,12 +71,13 @@ type Raft struct {
 
 	// state a Raft server must maintain.
 	// Channel
-	heartbeatCh         chan bool
-	convertLeaderCh     chan bool
-	convertFollowerCh   chan bool
-	convertCandidateCh  chan bool
-	sendAppendEntries   chan bool
-	sendInstallSnapshot chan bool
+
+	convertLeaderCh       chan bool
+	convertFollowerCh     chan bool
+	convertCandidateCh    chan bool
+	sendAppendEntriesCh   chan bool
+	sendInstallSnapshotCh chan bool
+	resetTimeElectionCh   chan bool
 
 	applyCh chan ApplyMsg
 
@@ -189,7 +190,7 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
 	if rf.getLogIndex(nextIndex) <= 0 {
 		// snapshot
-		rf.sendToChannel(rf.sendInstallSnapshot, true)
+		rf.sendToChannel(rf.sendInstallSnapshotCh, true)
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
 		args.PrevLogIndex = rf.getLastLogIndex()
@@ -240,7 +241,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	rf.sendToChannel(rf.sendAppendEntries, true)
+	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 	return index, rf.currentTerm, true
 }
 
@@ -278,8 +279,8 @@ func (rf *Raft) ticker() {
 		switch state {
 		case Follower:
 			select {
-			case <-rf.heartbeatCh:
 			case <-rf.convertCandidateCh:
+			case <-rf.resetTimeElectionCh:
 			case <-time.After(rf.waitElectionTimeOut()):
 				// If election timeout elapses: start new election
 				rf.startElection(state)
@@ -287,6 +288,7 @@ func (rf *Raft) ticker() {
 		case Candidate:
 			select {
 			case <-rf.convertFollowerCh:
+			case <-rf.resetTimeElectionCh:
 			case <-rf.convertLeaderCh:
 			case <-time.After(rf.waitElectionTimeOut()):
 				// If election timeout elapses: start new election
@@ -294,11 +296,11 @@ func (rf *Raft) ticker() {
 			}
 		case Leader:
 			select {
-			case <-rf.sendAppendEntries:
+			case <-rf.sendAppendEntriesCh:
 				rf.mu.Lock()
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
-			case <-rf.sendInstallSnapshot:
+			case <-rf.sendInstallSnapshotCh:
 				rf.mu.Lock()
 				rf.broadcastInstallSnapshot()
 				rf.mu.Unlock()
@@ -352,18 +354,15 @@ func Make(peers []*labrpc.ClientEnd, me int,
 }
 
 func (rf *Raft) initChannel() {
-	rf.heartbeatCh = make(chan bool)
 	rf.convertFollowerCh = make(chan bool)
 	rf.convertLeaderCh = make(chan bool)
 	rf.convertCandidateCh = make(chan bool)
-	rf.sendAppendEntries = make(chan bool)
-	rf.sendInstallSnapshot = make(chan bool)
+	rf.sendAppendEntriesCh = make(chan bool)
+	rf.sendInstallSnapshotCh = make(chan bool)
+	rf.resetTimeElectionCh = make(chan bool)
 }
 
 func (rf *Raft) initFollower() {
-	if rf.state == Follower {
-		return
-	}
 	rf.Convert(Follower)
 	rf.votedFor = -1
 	rf.voteCount = 0
