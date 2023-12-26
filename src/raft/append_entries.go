@@ -108,10 +108,7 @@ func (rf *Raft) broadcastAppendEntries() {
 		// If last log index ≥ nextIndex for a follower: send
 		// AppendEntries RPC with log entries starting at nextIndex
 		args := AppendEntriesArg{
-			LeaderId:     rf.me,
-			Term:         rf.currentTerm,
-			LeaderCommit: rf.commitIndex,
-			Entries:      make([]LogEntry, 0),
+			LeaderId: rf.me,
 		}
 		rf.handleRpc(server, &args)
 	}
@@ -134,7 +131,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
-		DPrintf(dRefresh, "S%d Refresh matchIndex index%d", server, args.PrevLogIndex+len(args.Entries))
+		DPrintf(dRefresh, "S%d => S%d index%d", rf.me, server, args.PrevLogIndex+len(args.Entries))
 		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
 		//Case 1: leader doesn't have XTerm:

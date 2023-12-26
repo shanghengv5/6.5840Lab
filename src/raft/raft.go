@@ -188,6 +188,9 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
+	args.LeaderCommit = rf.commitIndex
+	args.Term = rf.currentTerm
+
 	if rf.getLogIndex(nextIndex) <= 0 {
 		// snapshot
 		rf.sendToChannel(rf.sendInstallSnapshotCh, true)
@@ -205,9 +208,6 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 }
 
 func (rf *Raft) refreshMatchIndex(server int, index int) {
-	// leader update itself first
-	rf.matchIndex[rf.me] = rf.getLastLogIndex()
-	rf.nextIndex[rf.me] = rf.matchIndex[rf.me] + 1
 	if rf.matchIndex[server] > index {
 		return
 	}
@@ -241,7 +241,8 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
-	DPrintf(dStart, "S%d Term%d Command%v LogLength%d", rf.currentTerm, command, rf.getLogLength())
+	rf.refreshMatchIndex(rf.me, index)
+	DPrintf(dStart, "S%d Term%d Command%v LogLength%d", rf.me, rf.currentTerm, command, rf.getLogLength())
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 	return index, rf.currentTerm, true
 }
