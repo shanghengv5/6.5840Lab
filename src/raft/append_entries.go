@@ -43,15 +43,12 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	defer rf.persist()
 
 	reply.Term = rf.currentTerm
-	if args.Term < rf.currentTerm {
+	if args.Term < rf.currentTerm || rf.aboveCurrentTerm(args.Term) {
 		return
-	}
-	if rf.aboveCurrentTerm(args.Term) {
-		reply.Term = rf.currentTerm
 	}
 	rf.followerRespond()
 
-	DPrintf(dClient, "S%d => S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
+	DPrintf(dClient, "S%d => S%d %s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -73,16 +70,17 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			return
 		}
 
-		newLogIndex := args.PrevLogIndex + 1
 		//If an existing entry conflicts with a new one (same index
 		// but different terms), delete the existing entry and all that
 		// follow it (§5.3)
-		if rf.getLogLength() > newLogIndex {
-			rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
-		} else if rf.getLogLength() == newLogIndex {
-			// Append any new entries
-			rf.Logs = append(rf.Logs, args.Entries...)
-		}
+		rf.Logs = append(rf.getFractionLog(-1, args.PrevLogIndex+1), args.Entries...)
+
+		// if rf.getLogLength() > newLogIndex {
+		// 	rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
+		// } else if rf.getLogLength() == newLogIndex {
+		// 	// Append any new entries
+		// 	rf.Logs = append(rf.Logs[:], args.Entries...)
+		// }
 		//  If leaderCommit > commitIndex, set commitIndex =
 		//min(leaderCommit, index of last new entry)
 		if args.LeaderCommit > rf.commitIndex {

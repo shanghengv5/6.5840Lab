@@ -241,6 +241,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
+	DPrintf(dStart, "S%d Term%d Command%v LogLength%d", rf.currentTerm, command, rf.getLogLength())
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 	return index, rf.currentTerm, true
 }
