@@ -188,9 +188,6 @@ func (rf *Raft) sendToChannel(ch chan bool, b bool) {
 // check is snapshot or append entries
 func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
-	args.LeaderCommit = rf.commitIndex
-	args.Term = rf.currentTerm
-
 	if rf.getLogIndex(nextIndex) <= 0 {
 		// snapshot
 		rf.sendToChannel(rf.sendInstallSnapshotCh, true)

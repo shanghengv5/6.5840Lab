@@ -56,9 +56,6 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 }
 
 func (rf *Raft) SetCommitIndex(index int) {
-	if index <= rf.commitIndex {
-		return
-	}
 	rf.commitIndex = index
 }
 

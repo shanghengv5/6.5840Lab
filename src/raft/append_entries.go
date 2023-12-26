@@ -108,7 +108,9 @@ func (rf *Raft) broadcastAppendEntries() {
 		// If last log index ≥ nextIndex for a follower: send
 		// AppendEntries RPC with log entries starting at nextIndex
 		args := AppendEntriesArg{
-			LeaderId: rf.me,
+			LeaderId:     rf.me,
+			LeaderCommit: rf.commitIndex,
+			Term:         rf.currentTerm,
 		}
 		rf.handleRpc(server, &args)
 	}
@@ -155,5 +157,4 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		}
 		rf.handleRpc(server, args)
 	}
-
 }
