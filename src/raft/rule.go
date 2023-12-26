@@ -6,7 +6,7 @@ package raft
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
 	DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex())
-	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
+	for ; rf.lastApplied < rf.commitIndex && rf.lastApplied < rf.getLogLength(); rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
 			rf.applyStateMachine(ApplyMsg{

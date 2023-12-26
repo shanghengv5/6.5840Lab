@@ -43,11 +43,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	defer rf.persist()
 
 	reply.Term = rf.currentTerm
-	if args.Term < rf.currentTerm || rf.aboveCurrentTerm(args.Term) {
+	if args.Term < rf.currentTerm {
 		return
 	}
-	DPrintf(dClient, "S%d => S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
+	if rf.aboveCurrentTerm(args.Term) {
+		reply.Term = rf.currentTerm
+	}
 	rf.followerRespond()
+
+	DPrintf(dClient, "S%d => S%d Role%s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -132,6 +136,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
+		DPrintf(dRefresh, "S%d Refresh matchIndex index%d", server, args.PrevLogIndex+len(args.Entries))
 		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
 		//Case 1: leader doesn't have XTerm:
