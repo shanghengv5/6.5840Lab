@@ -233,7 +233,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	defer rf.mu.Unlock()
 	defer rf.persist()
 	// Your code here (2B).
-	if rf.state != Leader && !rf.killed() {
+	if rf.state != Leader || rf.killed() {
 		return rf.commitIndex, rf.currentTerm, false
 	}
 
@@ -372,7 +372,7 @@ func (rf *Raft) initLeaderVolatile() {
 	for server := range rf.peers {
 		rf.matchIndex[server] = 0
 		if server == rf.me {
-			rf.matchIndex[server] = rf.commitIndex
+			rf.matchIndex[server] = rf.getLastLogIndex()
 		}
 		rf.nextIndex[server] = rf.commitIndex + 1
 	}

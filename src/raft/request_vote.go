@@ -28,9 +28,10 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	if args.Term < rf.currentTerm {
 		return
 	}
-	rf.aboveCurrentTerm(args.Term)
 	DPrintf(dVote, "S%d=>S%d argsTerm:%d Term:%d lastLogIndex%d lastLogTerm%d voteFor%d %s", args.CandidateId, rf.me, args.Term, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm(), rf.votedFor, rf.state)
-	if rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
+
+	if rf.aboveCurrentTerm(args.Term) &&
+		rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.votedFor = args.CandidateId
 		reply.Term = rf.currentTerm
 		rf.sendToChannel(rf.resetTimeElectionCh, true)

@@ -5,10 +5,10 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
+	DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex())
 	for ; rf.lastApplied < rf.commitIndex; rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
-			DPrintf(dApply, "S%d lastApplied%d CommitIndex%d lastIncludedIndex%d LastLogIndex%d applyIndex%d entry%v", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.getLastLogIndex(), applyIndex, rf.getLogEntry(applyIndex))
 			rf.applyStateMachine(ApplyMsg{
 				Command:      rf.getLogEntry(applyIndex).Command,
 				CommandValid: true,
@@ -136,7 +136,7 @@ func (rf *Raft) becomeLeader() {
 	DPrintf(dLeader, "S%d become a leader term%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	rf.Convert(Leader)
 	// (Reinitialized after election)
-	// rf.initLeaderVolatile()
+	rf.initLeaderVolatile()
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 }
 
