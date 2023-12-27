@@ -48,7 +48,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	rf.followerRespond()
 
-	DPrintf(dClient, "S%d => S%d %s AppendEntries lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, rf.me, rf.state, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
+	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -73,14 +73,21 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		//If an existing entry conflicts with a new one (same index
 		// but different terms), delete the existing entry and all that
 		// follow it (§5.3)
-		rf.Logs = append(rf.getFractionLog(-1, args.PrevLogIndex+1), args.Entries...)
-
-		// if rf.getLogLength() > newLogIndex {
-		// 	rf.Logs = append(rf.getFractionLog(-1, newLogIndex), args.Entries...)
-		// } else if rf.getLogLength() == newLogIndex {
-		// 	// Append any new entries
-		// 	rf.Logs = append(rf.Logs[:], args.Entries...)
-		// }
+		for i, entry := range args.Entries {
+			newAdd := args.PrevLogIndex + i + 1
+			if newAdd >= rf.getLogLength() {
+				rf.Logs = append(rf.Logs, args.Entries[i:]...)
+				break
+			}
+			if newAdd < rf.getLogLength() {
+				if rf.getLogEntry(newAdd).Term != entry.Term {
+					rf.Logs = append(rf.Logs[:newAdd], args.Entries[i:]...)
+					break
+				} else {
+					rf.Logs[newAdd] = entry
+				}
+			}
+		}
 		//  If leaderCommit > commitIndex, set commitIndex =
 		//min(leaderCommit, index of last new entry)
 		if args.LeaderCommit > rf.commitIndex {
@@ -100,6 +107,9 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 // (heartbeat) to each server; repeat during idle periods to
 // prevent election timeouts (§5.2)
 func (rf *Raft) broadcastAppendEntries() {
+	if rf.state != Leader {
+		return
+	}
 	DPrintf(dAppend, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	for server := range rf.peers {
 		if server == rf.me {

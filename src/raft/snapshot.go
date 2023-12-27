@@ -91,6 +91,9 @@ func (rf *Raft) installSnapshotRpc(server int, args *InstallSnapshotArg) {
 }
 
 func (rf *Raft) broadcastInstallSnapshot() {
+	if rf.state != Leader {
+		return
+	}
 	snapArgs := InstallSnapshotArg{
 		Term:              rf.currentTerm,
 		LeaderId:          rf.me,

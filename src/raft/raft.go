@@ -239,7 +239,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-	DPrintf(dStart, "S%d Term%d Command%v LogLength%d", rf.me, rf.currentTerm, command, rf.getLogLength())
+	DPrintf(dStart, "S%d Term%d Command%v index%d", rf.me, rf.currentTerm, command, index)
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 	return index, rf.currentTerm, true
 }
