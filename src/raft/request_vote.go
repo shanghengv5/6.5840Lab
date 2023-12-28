@@ -29,12 +29,11 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		return
 	}
 	DPrintf(dVote, "S%d=>S%d argsTerm:%d Term:%d lastLogIndex%d lastLogTerm%d voteFor%d %s", args.CandidateId, rf.me, args.Term, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm(), rf.votedFor, rf.state)
-	rf.aboveCurrentTerm(args.Term)
 	rf.sendToChannel(rf.resetTimeElectionCh, true)
-	if rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
+	//  The majority rule ensures that at most one candidate can win the election for a particular term (the Election Safety Property in Figure 3)
+	if rf.aboveCurrentTerm(args.Term) && rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.votedFor = args.CandidateId
 		reply.Term = rf.currentTerm
-		rf.sendToChannel(rf.resetTimeElectionCh, true)
 		reply.VoteGranted = true
 		return
 	}

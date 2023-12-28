@@ -73,34 +73,15 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		//If an existing entry conflicts with a new one (same index
 		// but different terms), delete the existing entry and all that
 		// follow it (§5.3)
-		// rf.Logs = append(rf.getFractionLog(-1, args.PrevLogIndex+1), args.Entries...)
-		// newAdd, rest := args.PrevLogIndex+1, 0
-		// for ; newAdd < rf.getLogLength() && rest < len(args.Entries); newAdd, rest = newAdd+1, rest+1 {
-		// 	if rf.getLogEntry(newAdd).Term != args.Entries[rest].Term {
-		// 		break
-		// 	} else {
-		// 		rf.Logs[rf.getLogIndex(newAdd)] = args.Entries[rest]
-		// 	}
-		// }
-		// newAdd := args.PrevLogIndex + 1
-		// rest := newAdd + len(args.Entries)
-		// if rest < rf.getLogLength() {
-		// 	args.Entries = append(args.Entries[:], rf.Logs[rest:]...)
-		// }
-		// rf.Logs = append(rf.getFractionLog(-1, newAdd), args.Entries[:]...)
 		for i, entry := range args.Entries {
 			newAdd := args.PrevLogIndex + i + 1
 			if newAdd >= rf.getLogLength() {
 				rf.Logs = append(rf.Logs, args.Entries[i:]...)
 				break
 			}
-			if newAdd < rf.getLogLength() {
-				if rf.getLogEntry(newAdd).Term != entry.Term {
-					rf.Logs = append(rf.getFractionLog(-1, newAdd), args.Entries[i:]...)
-					break
-				} else {
-					rf.Logs[rf.getLogIndex(newAdd)] = entry
-				}
+			if rf.getLogEntry(newAdd).Term != entry.Term {
+				rf.Logs = append(rf.getFractionLog(-1, newAdd), args.Entries[i:]...)
+				break
 			}
 		}
 		//  If leaderCommit > commitIndex, set commitIndex =
