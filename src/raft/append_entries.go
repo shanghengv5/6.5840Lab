@@ -73,6 +73,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		//If an existing entry conflicts with a new one (same index
 		// but different terms), delete the existing entry and all that
 		// follow it (§5.3)
+		// rf.Logs = append(rf.getFractionLog(-1, args.PrevLogIndex+1), args.Entries...)
 		for i, entry := range args.Entries {
 			newAdd := args.PrevLogIndex + i + 1
 			if newAdd >= rf.getLogLength() {
@@ -81,10 +82,10 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			}
 			if newAdd < rf.getLogLength() {
 				if rf.getLogEntry(newAdd).Term != entry.Term {
-					rf.Logs = append(rf.Logs[:newAdd], args.Entries[i:]...)
+					rf.Logs = append(rf.getFractionLog(-1, newAdd), args.Entries[i:]...)
 					break
 				} else {
-					rf.Logs[newAdd] = entry
+					rf.Logs[rf.getLogIndex(newAdd)] = entry
 				}
 			}
 		}
