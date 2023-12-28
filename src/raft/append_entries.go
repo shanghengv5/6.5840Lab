@@ -92,6 +92,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			} else {
 				rf.SetCommitIndex(args.LeaderCommit)
 			}
+			go rf.commitIndexAboveLastApplied()
 		}
 		reply.Success = true
 	} else {

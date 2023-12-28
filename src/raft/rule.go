@@ -5,6 +5,9 @@ package raft
 // If commitIndex > lastApplied: increment lastApplied, apply
 // log[lastApplied] to state machine (§5.3)
 func (rf *Raft) commitIndexAboveLastApplied() {
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
 	for ; rf.lastApplied < rf.commitIndex && rf.lastApplied < rf.getLastLogIndex(); rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
@@ -212,6 +215,7 @@ func (rf *Raft) existsNSetCommitIndex() {
 		}
 		if voteCount >= rf.majority/2+1 {
 			rf.SetCommitIndex(N)
+			go rf.commitIndexAboveLastApplied()
 		}
 	}
 
