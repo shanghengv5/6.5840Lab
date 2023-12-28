@@ -30,6 +30,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	}
 	DPrintf(dVote, "S%d=>S%d argsTerm:%d Term:%d lastLogIndex%d lastLogTerm%d voteFor%d %s", args.CandidateId, rf.me, args.Term, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm(), rf.votedFor, rf.state)
 	rf.aboveCurrentTerm(args.Term)
+	rf.sendToChannel(rf.resetTimeElectionCh, true)
 	if rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
 		rf.votedFor = args.CandidateId
 		reply.Term = rf.currentTerm
