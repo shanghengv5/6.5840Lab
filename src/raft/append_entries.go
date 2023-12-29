@@ -48,7 +48,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	rf.followerRespond()
 
-	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), len(args.Entries))
+	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -63,7 +63,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			// term in the conflicting entry (if any)
 			reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
 			// index of first entry with that term (if any)
-			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
+			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) >= 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
 
 			}
 			reply.XIndex++
@@ -107,7 +107,7 @@ func (rf *Raft) broadcastAppendEntries() {
 	if rf.state != Leader {
 		return
 	}
-	DPrintf(dAppend, "S%d lastIncludedIndex%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
+	DPrintf(dAppend, "S%d lastIncludedIndex%d lastIncludeTerm%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
