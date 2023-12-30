@@ -193,12 +193,8 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 		rf.sendToChannel(rf.sendInstallSnapshotCh, true)
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
-		if rf.lastIncludedIndex+1 <= rf.getLastLogIndex() {
-			args.Entries = make([]LogEntry, len(rf.getFractionLog(rf.lastIncludedIndex+1, -1)))
-			copy(args.Entries, rf.getFractionLog(rf.lastIncludedIndex+1, -1))
-		}
-		args.PrevLogIndex = rf.lastIncludedIndex
-		args.PrevLogTerm = rf.lastIncludedTerm
+		args.PrevLogIndex = rf.getLastLogIndex()
+		args.PrevLogTerm = rf.getLastLogTerm()
 	} else {
 		args.Entries = make([]LogEntry, len(rf.getFractionLog(nextIndex, -1)))
 		copy(args.Entries, rf.getFractionLog(nextIndex, -1))

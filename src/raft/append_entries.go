@@ -156,7 +156,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 			for ; rf.getLogIndex(i) > 0 && rf.getLogEntry(i).Term != reply.XTerm; i-- {
 
 			}
-			if rf.getLogEntry(i).Term == reply.XTerm {
+			if rf.getLogEntry(i).Term == reply.XTerm && i > 0{
 				rf.nextIndex[server] = i
 			} else {
 				rf.nextIndex[server] = reply.XIndex
