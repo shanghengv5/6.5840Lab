@@ -48,7 +48,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	rf.followerRespond()
 
-	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
+	// DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -63,7 +63,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			// term in the conflicting entry (if any)
 			reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
 			// index of first entry with that term (if any)
-			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) >= 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
+			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
 
 			}
 			reply.XIndex++
@@ -156,7 +156,8 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 			for ; rf.getLogIndex(i) > 0 && rf.getLogEntry(i).Term != reply.XTerm; i-- {
 
 			}
-			if rf.getLogEntry(i).Term == reply.XTerm && rf.getLogIndex(i) > 0{
+			DPrintf(dAppend, "S%d ReplyFalse i%d replyTerm%d replyIndex%d",server, i, reply.XTerm, reply.XIndex)
+			if rf.getLogEntry(i).Term == reply.XTerm && rf.getLogIndex(i) >= 0{
 				rf.nextIndex[server] = i
 			} else {
 				rf.nextIndex[server] = reply.XIndex
