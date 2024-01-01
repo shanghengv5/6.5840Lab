@@ -63,7 +63,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			// term in the conflicting entry (if any)
 			reply.XTerm = rf.getLogEntry(args.PrevLogIndex).Term
 			// index of first entry with that term (if any)
-			for reply.XIndex = args.PrevLogIndex; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
+			for reply.XIndex = args.PrevLogIndex - 1; rf.getLogIndex(reply.XIndex) > 0 && rf.getLogEntry(reply.XIndex).Term == reply.XTerm; reply.XIndex-- {
 
 			}
 			reply.XIndex++
