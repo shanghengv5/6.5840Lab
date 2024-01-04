@@ -71,6 +71,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArg, reply *InstallSnapshot
 	if args.Term < rf.currentTerm || rf.aboveCurrentTerm(args.Term) {
 		return
 	}
+	rf.followerRespond()
 	DPrintf(dClient, "S%d InstallSnapshot lastApplied%d CommitIndex%d lastIncludedIndex%d", rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex)
 	rf.SetLastIncludedIndex(args.LastIncludedIndex, args.LastIncludedTerm, args.Data)
 }
