@@ -46,6 +46,9 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 	rf.lastIncludedIndex = index
 	rf.Logs = newHead
 	rf.persister.Save(rf.persister.ReadRaftState(), snapshot)
+	if rf.state == Leader {
+		rf.broadcastInstallSnapshot()
+	}
 	// If snapshot need update apply msg
 	if rf.refreshLastApplied(rf.lastIncludedIndex) {
 		rf.applyStateMachine(ApplyMsg{

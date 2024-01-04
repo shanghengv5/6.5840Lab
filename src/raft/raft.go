@@ -72,12 +72,11 @@ type Raft struct {
 	// state a Raft server must maintain.
 	// Channel
 
-	convertLeaderCh       chan bool
-	convertFollowerCh     chan bool
-	convertCandidateCh    chan bool
-	sendAppendEntriesCh   chan bool
-	sendInstallSnapshotCh chan bool
-	resetTimeElectionCh   chan bool
+	convertLeaderCh     chan bool
+	convertFollowerCh   chan bool
+	convertCandidateCh  chan bool
+	sendAppendEntriesCh chan bool
+	resetTimeElectionCh chan bool
 
 	applyCh chan ApplyMsg
 
@@ -190,7 +189,7 @@ func (rf *Raft) handleRpc(server int, args *AppendEntriesArg) {
 	nextIndex := rf.nextIndex[server]
 	if rf.getLogIndex(nextIndex) <= 0 {
 		// snapshot
-		rf.sendToChannel(rf.sendInstallSnapshotCh, true)
+		rf.broadcastInstallSnapshot()
 		// Heartbeat
 		args.Entries = make([]LogEntry, 0)
 		args.PrevLogIndex = rf.getLastLogIndex()
@@ -299,10 +298,6 @@ func (rf *Raft) ticker() {
 				rf.mu.Lock()
 				rf.broadcastAppendEntries()
 				rf.mu.Unlock()
-			case <-rf.sendInstallSnapshotCh:
-				rf.mu.Lock()
-				rf.broadcastInstallSnapshot()
-				rf.mu.Unlock()
 			case <-rf.convertFollowerCh:
 			case <-time.After(HEARTBEAT * time.Millisecond):
 				rf.mu.Lock()
@@ -357,7 +352,6 @@ func (rf *Raft) initChannel() {
 	rf.convertLeaderCh = make(chan bool)
 	rf.convertCandidateCh = make(chan bool)
 	rf.sendAppendEntriesCh = make(chan bool)
-	rf.sendInstallSnapshotCh = make(chan bool)
 	rf.resetTimeElectionCh = make(chan bool)
 }
 
