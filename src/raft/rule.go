@@ -110,12 +110,12 @@ func (rf *Raft) grantingVote(voteFor int) {
 
 func (rf *Raft) startElection(fromState State) {
 	// Repeat vote
-	if rf.state != fromState {
-		return
-	}
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
+	if rf.state != fromState {
+		return
+	}
 	if rf.votedFor == -1 || rf.votedFor == rf.me {
 		rf.grantingVote(rf.me)
 		rf.currentTerm++

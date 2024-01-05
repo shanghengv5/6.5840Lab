@@ -281,7 +281,9 @@ func (rf *Raft) ticker() {
 			case <-rf.resetTimeElectionCh:
 			case <-time.After(rf.waitElectionTimeOut()):
 				// If election timeout elapses: start new election
+				
 				rf.startElection(state)
+				
 			}
 		case Candidate:
 			select {
