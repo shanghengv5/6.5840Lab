@@ -140,7 +140,6 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	if reply.Success {
 		// If successful: update nextIndex and matchIndex for
 		// follower (§5.3)
-		DPrintf(dRefresh, "S%d => S%d index%d", rf.me, server, args.PrevLogIndex+len(args.Entries))
 		rf.refreshMatchIndex(server, args.PrevLogIndex+len(args.Entries))
 	} else {
 		//Case 1: leader doesn't have XTerm:
@@ -156,8 +155,8 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 			for ; rf.getLogIndex(i) > 0 && rf.getLogEntry(i).Term != reply.XTerm; i-- {
 
 			}
-			DPrintf(dAppend, "S%d ReplyFalse i%d replyTerm%d replyIndex%d",server, i, reply.XTerm, reply.XIndex)
-			if rf.getLogEntry(i).Term == reply.XTerm && rf.getLogIndex(i) > 0{
+			DPrintf(dAppend, "S%d ReplyFalse i%d replyTerm%d replyIndex%d", server, i, reply.XTerm, reply.XIndex)
+			if rf.getLogEntry(i).Term == reply.XTerm && rf.getLogIndex(i) > 0 {
 				rf.nextIndex[server] = i
 			} else {
 				rf.nextIndex[server] = reply.XIndex

@@ -321,23 +321,22 @@ func (rf *Raft) ticker() {
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
 	rf.peers = peers
 	rf.persister = persister
 	rf.me = me
-
 	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)
 	rf.Logs = append(rf.Logs, LogEntry{Term: 0})
 	rf.lastIncludedIndex = 0
 
-	rf.initFollower()
 	rf.initChannel()
 	rf.applyCh = applyCh
 	rf.nextIndex = make([]int, rf.majority)
 	rf.matchIndex = make([]int, rf.majority)
 
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
+	rf.initFollower()
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 

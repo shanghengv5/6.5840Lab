@@ -18,7 +18,6 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 				CommandIndex: applyIndex,
 			})
 		}
-
 	}
 }
 
