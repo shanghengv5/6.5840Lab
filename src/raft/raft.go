@@ -263,7 +263,7 @@ func (rf *Raft) killed() bool {
 }
 
 func (rf *Raft) waitElectionTimeOut() time.Duration {
-	ms := HEARTBEAT + 50 + (rand.Int63() % HEARTBEAT)
+	ms := 2*HEARTBEAT + (rand.Int63() % HEARTBEAT)
 	return time.Duration(ms) * time.Millisecond
 }
 
@@ -281,9 +281,7 @@ func (rf *Raft) ticker() {
 			case <-rf.resetTimeElectionCh:
 			case <-time.After(rf.waitElectionTimeOut()):
 				// If election timeout elapses: start new election
-				
 				rf.startElection(state)
-				
 			}
 		case Candidate:
 			select {

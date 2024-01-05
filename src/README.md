@@ -1,6 +1,6 @@
 # Personal Lab Practice
 * Lab1 MapReduce Done
-* Lab2 Raft Working
+* Lab2 Raft Done
 
 # Essays you should read
 * [MapReduce](https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf)
