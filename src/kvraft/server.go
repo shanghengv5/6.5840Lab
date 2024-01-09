@@ -5,7 +5,6 @@ import (
 	"log"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"6.5840/labgob"
 	"6.5840/labrpc"
@@ -25,9 +24,10 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Key   string
-	Value string
-	Op    string
+	Key       string
+	Value     string
+	Op        string
+	RequestId int64
 }
 
 type KVServer struct {
@@ -40,76 +40,66 @@ type KVServer struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
-	data     map[string]string
-	applyLog map[int]interface{}
-	term     int
+	data         map[string]string
+	requestValid map[int64]bool
 }
 
-func (kv *KVServer) checkLog(index int, oldOp Op) bool {
-	if command, ok := kv.applyLog[index]; ok {
-		if op, ok := command.(Op); ok {
-			if op == oldOp {
-				return true
-			}
+func (kv *KVServer) checkRequest(RequestId int64) int {
+	if v, ok := kv.requestValid[RequestId]; ok {
+		if v == false {
+			return 0
 		}
-
+		return 1
 	}
-
-	return false
+	return -1
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
-	reply.Err = ErrWrongLeader
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
 
-	value, ok := kv.data[args.Key]
-	if !ok {
-		reply.Err = ErrNoKey
-	}
-	oldOp := Op{
-		Op:    "Get",
-		Key:   args.Key,
-		Value: "",
-	}
-	index, term, isLeader := kv.rf.Start(oldOp)
-	t := time.Now()
-	if isLeader && term >= kv.term {
-		kv.term = term
-		for time.Since(t).Seconds() < 10 {
-			if kv.checkLog(index, oldOp) {
-				reply.Err = ""
-				reply.Value = kv.data[args.Key]
-				return
-			}
+	if kv.checkRequest(args.RequestId) == -1 {
+		oldOp := Op{
+			Op:        "Get",
+			Key:       args.Key,
+			RequestId: args.RequestId,
 		}
+		kv.requestValid[args.RequestId] = false
+		_, _, isLeader := kv.rf.Start(oldOp)
+		if !isLeader {
+			reply.Err = ErrWrongLeader
+		}
+	} else if kv.checkRequest(args.RequestId) == 0 {
+		reply.Err = ""
+	} else {
+		reply.Err = OK
+		reply.Value = kv.data[args.Key]
 	}
 
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
-	reply.Err = ErrWrongLeader
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
 
-	oldOp := Op{
-		Op:    args.Op,
-		Key:   args.Key,
-		Value: args.Value,
-	}
-	index, term, isLeader := kv.rf.Start(oldOp)
-	t := time.Now()
-	if isLeader && term >= kv.term {
-		kv.term = term
-		for time.Since(t).Seconds() < 10 {
-			if kv.checkLog(index, oldOp) {
-				reply.Err = ""
-				kv.data[oldOp.Key] = oldOp.Value
-				return
-			}
+	if kv.checkRequest(args.RequestId) == -1 {
+		oldOp := Op{
+			Op:        args.Op,
+			Key:       args.Key,
+			RequestId: args.RequestId,
+			Value:     args.Value,
 		}
+		kv.requestValid[args.RequestId] = false
+		_, _, isLeader := kv.rf.Start(oldOp)
+		if !isLeader {
+			reply.Err = ErrWrongLeader
+		}
+	} else if kv.checkRequest(args.RequestId) == 0 {
+		reply.Err = ""
+	} else {
+		reply.Err = OK
 	}
 
 }
@@ -156,7 +146,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 	kv.data = make(map[string]string)
-	kv.applyLog = make(map[int]interface{})
+	kv.requestValid = make(map[int64]bool)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
@@ -173,7 +163,13 @@ func (kv *KVServer) applier() {
 			kv.mu.Unlock()
 		} else if m.CommandValid {
 			kv.mu.Lock()
-			kv.applyLog[m.CommandIndex] = m.Command
+			op, ok := m.Command.(Op)
+			if ok {
+				kv.requestValid[op.RequestId] = true
+				if op.Op != "GET" {
+					kv.data[op.Key] += op.Value
+				}
+			}
 			kv.mu.Unlock()
 
 			if (m.CommandIndex+1)%kv.maxraftstate == 0 {
@@ -181,9 +177,9 @@ func (kv *KVServer) applier() {
 				e := labgob.NewEncoder(w)
 				e.Encode(m.CommandIndex)
 				var xlog []interface{}
-				for j := 0; j <= m.CommandIndex; j++ {
-					xlog = append(xlog, kv.applyLog[j])
-				}
+				// for j := 0; j <= m.CommandIndex; j++ {
+				// 	xlog = append(xlog, kv.applyLog[j])
+				// }
 				e.Encode(xlog)
 				kv.rf.Snapshot(m.CommandIndex, w.Bytes())
 			}

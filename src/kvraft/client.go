@@ -38,18 +38,29 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
 	args, reply := GetArgs{
-		Key: key,
+		Key:       key,
+		RequestId: nrand(),
 	}, GetReply{
-		Err: OK,
+		Err: "",
 	}
-	// You will have to modify this function.
-	for server := range ck.servers {
-		if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); ok && reply.Err == OK {
-			return reply.Value
+
+	for reply.Err != OK {
+		// You will have to modify this function.
+		for server := range ck.servers {
+			if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); ok && reply.Err == OK {
+				return reply.Value
+			}
 		}
 	}
 	return ""
 }
+
+// func (ck *Clerk) GetRpc(server int, args *GetArgs, reply *GetReply) {
+// 	ok := ck.servers[server].Call("KVServer.Get", &args, &reply)
+// 	if !ok {
+
+// 	}
+// }
 
 // shared by Put and Append.
 //
@@ -62,15 +73,18 @@ func (ck *Clerk) Get(key string) string {
 func (ck *Clerk) PutAppend(key string, value string, op string) {
 	// You will have to modify this function.
 	args, reply := PutAppendArgs{
-		Key: key,
-		Op:  op,
+		Key:       key,
+		Op:        op,
+		RequestId: nrand(),
 	}, PutAppendReply{
 		Err: OK,
 	}
-	// You will have to modify this function.
-	for server := range ck.servers {
-		if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); ok && reply.Err == OK {
-			return
+	for reply.Err != OK {
+		// You will have to modify this function.
+		for server := range ck.servers {
+			if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); ok && reply.Err == OK {
+				return
+			}
 		}
 	}
 }
