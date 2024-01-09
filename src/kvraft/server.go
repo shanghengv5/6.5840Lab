@@ -1,12 +1,15 @@
 package kvraft
 
 import (
-	"6.5840/labgob"
-	"6.5840/labrpc"
-	"6.5840/raft"
+	"bytes"
 	"log"
 	"sync"
 	"sync/atomic"
+	"time"
+
+	"6.5840/labgob"
+	"6.5840/labrpc"
+	"6.5840/raft"
 )
 
 const Debug = false
@@ -18,11 +21,13 @@ func DPrintf(format string, a ...interface{}) (n int, err error) {
 	return
 }
 
-
 type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+	Key   string
+	Value string
+	Op    string
 }
 
 type KVServer struct {
@@ -35,15 +40,78 @@ type KVServer struct {
 	maxraftstate int // snapshot if log grows this big
 
 	// Your definitions here.
+	data     map[string]string
+	applyLog map[int]interface{}
+	term     int
 }
 
+func (kv *KVServer) checkLog(index int, oldOp Op) bool {
+	if command, ok := kv.applyLog[index]; ok {
+		if op, ok := command.(Op); ok {
+			if op == oldOp {
+				return true
+			}
+		}
+
+	}
+
+	return false
+}
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
+	reply.Err = ErrWrongLeader
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	value, ok := kv.data[args.Key]
+	if !ok {
+		reply.Err = ErrNoKey
+	}
+	oldOp := Op{
+		Op:    "Get",
+		Key:   args.Key,
+		Value: "",
+	}
+	index, term, isLeader := kv.rf.Start(oldOp)
+	t := time.Now()
+	if isLeader && term >= kv.term {
+		kv.term = term
+		for time.Since(t).Seconds() < 10 {
+			if kv.checkLog(index, oldOp) {
+				reply.Err = ""
+				reply.Value = kv.data[args.Key]
+				return
+			}
+		}
+	}
+
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
+	reply.Err = ErrWrongLeader
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	oldOp := Op{
+		Op:    args.Op,
+		Key:   args.Key,
+		Value: args.Value,
+	}
+	index, term, isLeader := kv.rf.Start(oldOp)
+	t := time.Now()
+	if isLeader && term >= kv.term {
+		kv.term = term
+		for time.Since(t).Seconds() < 10 {
+			if kv.checkLog(index, oldOp) {
+				reply.Err = ""
+				kv.data[oldOp.Key] = oldOp.Value
+				return
+			}
+		}
+	}
+
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -87,11 +155,38 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.maxraftstate = maxraftstate
 
 	// You may need initialization code here.
-
+	kv.data = make(map[string]string)
+	kv.applyLog = make(map[int]interface{})
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
 	// You may need initialization code here.
-
+	go kv.applier()
 	return kv
+}
+
+func (kv *KVServer) applier() {
+	for m := range kv.applyCh {
+		if m.SnapshotValid {
+			kv.mu.Lock()
+			// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
+			kv.mu.Unlock()
+		} else if m.CommandValid {
+			kv.mu.Lock()
+			kv.applyLog[m.CommandIndex] = m.Command
+			kv.mu.Unlock()
+
+			if (m.CommandIndex+1)%kv.maxraftstate == 0 {
+				w := new(bytes.Buffer)
+				e := labgob.NewEncoder(w)
+				e.Encode(m.CommandIndex)
+				var xlog []interface{}
+				for j := 0; j <= m.CommandIndex; j++ {
+					xlog = append(xlog, kv.applyLog[j])
+				}
+				e.Encode(xlog)
+				kv.rf.Snapshot(m.CommandIndex, w.Bytes())
+			}
+		}
+	}
 }

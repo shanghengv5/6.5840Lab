@@ -1,9 +1,11 @@
 package kvraft
 
-import "6.5840/labrpc"
-import "crypto/rand"
-import "math/big"
+import (
+	"crypto/rand"
+	"math/big"
 
+	"6.5840/labrpc"
+)
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
@@ -35,8 +37,17 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
-
+	args, reply := GetArgs{
+		Key: key,
+	}, GetReply{
+		Err: OK,
+	}
 	// You will have to modify this function.
+	for server := range ck.servers {
+		if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); ok && reply.Err == OK {
+			return reply.Value
+		}
+	}
 	return ""
 }
 
@@ -50,6 +61,18 @@ func (ck *Clerk) Get(key string) string {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) {
 	// You will have to modify this function.
+	args, reply := PutAppendArgs{
+		Key: key,
+		Op:  op,
+	}, PutAppendReply{
+		Err: OK,
+	}
+	// You will have to modify this function.
+	for server := range ck.servers {
+		if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); ok && reply.Err == OK {
+			return
+		}
+	}
 }
 
 func (ck *Clerk) Put(key string, value string) {
