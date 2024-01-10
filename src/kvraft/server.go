@@ -2,7 +2,6 @@ package kvraft
 
 import (
 	"bytes"
-	"log"
 	"sync"
 	"sync/atomic"
 
@@ -10,15 +9,6 @@ import (
 	"6.5840/labrpc"
 	"6.5840/raft"
 )
-
-const Debug = false
-
-func DPrintf(format string, a ...interface{}) (n int, err error) {
-	if Debug {
-		log.Printf(format, a...)
-	}
-	return
-}
 
 type Op struct {
 	// Your definitions here.
@@ -41,67 +31,54 @@ type KVServer struct {
 
 	// Your definitions here.
 	data         map[string]string
-	requestValid map[int64]bool
-}
-
-func (kv *KVServer) checkRequest(RequestId int64) int {
-	if v, ok := kv.requestValid[RequestId]; ok {
-		if v == false {
-			return 0
-		}
-		return 1
-	}
-	return -1
+	requestValid map[int64]int
+	applyLog     map[int]Op
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
-
-	if kv.checkRequest(args.RequestId) == -1 {
-		oldOp := Op{
-			Op:        "Get",
-			Key:       args.Key,
-			RequestId: args.RequestId,
-		}
-		kv.requestValid[args.RequestId] = false
-		_, _, isLeader := kv.rf.Start(oldOp)
-		if !isLeader {
-			reply.Err = ErrWrongLeader
-		}
-	} else if kv.checkRequest(args.RequestId) == 0 {
-		reply.Err = ""
-	} else {
-		reply.Err = OK
-		reply.Value = kv.data[args.Key]
+	cmd := Op{
+		Op:        "Get",
+		Key:       args.Key,
+		RequestId: args.RequestId,
 	}
-
+	checkIndex, ok := kv.requestValid[args.RequestId]
+	if !ok {
+		index, _, isLeader := kv.rf.Start(cmd)
+		if isLeader {
+			kv.requestValid[args.RequestId] = index
+		}
+	}
+	op, ok := kv.applyLog[checkIndex]
+	if ok && op.RequestId == args.RequestId {
+		reply.Value = op.Value
+		reply.Err = OK
+	}
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
-
-	if kv.checkRequest(args.RequestId) == -1 {
-		oldOp := Op{
-			Op:        args.Op,
-			Key:       args.Key,
-			RequestId: args.RequestId,
-			Value:     args.Value,
+	cmd := Op{
+		Op:        args.Op,
+		Key:       args.Key,
+		Value:     args.Value,
+		RequestId: args.RequestId,
+	}
+	checkIndex, ok := kv.requestValid[args.RequestId]
+	if !ok {
+		index, _, isLeader := kv.rf.Start(cmd)
+		if isLeader {
+			kv.requestValid[args.RequestId] = index
 		}
-		kv.requestValid[args.RequestId] = false
-		_, _, isLeader := kv.rf.Start(oldOp)
-		if !isLeader {
-			reply.Err = ErrWrongLeader
-		}
-	} else if kv.checkRequest(args.RequestId) == 0 {
-		reply.Err = ""
-	} else {
+	}
+	op, ok := kv.applyLog[checkIndex]
+	if ok && op.RequestId == args.RequestId {
 		reply.Err = OK
 	}
-
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -146,7 +123,8 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 	kv.data = make(map[string]string)
-	kv.requestValid = make(map[int64]bool)
+	kv.requestValid = make(map[int64]int)
+	kv.applyLog = map[int]Op{}
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
@@ -164,12 +142,16 @@ func (kv *KVServer) applier() {
 		} else if m.CommandValid {
 			kv.mu.Lock()
 			op, ok := m.Command.(Op)
-			if ok {
-				kv.requestValid[op.RequestId] = true
-				if op.Op != "GET" {
-					kv.data[op.Key] += op.Value
-				}
+			if !ok {
+				panic("Not Command Op")
 			}
+			kv.requestValid[op.RequestId] = m.CommandIndex
+			if op.Op == "GET" {
+				op.Value = kv.data[op.Key]
+			} else {
+				kv.data[op.Key] += op.Value
+			}
+			kv.applyLog[m.CommandIndex] = op
 			kv.mu.Unlock()
 
 			if (m.CommandIndex+1)%kv.maxraftstate == 0 {

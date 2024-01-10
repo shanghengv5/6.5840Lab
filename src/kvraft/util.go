@@ -1,4 +1,4 @@
-package raft
+package kvraft
 
 import (
 	"fmt"
@@ -9,33 +9,14 @@ import (
 )
 
 // Debugging
-const Debug = 1
+const Debug = 2
 
 type logTopic string
 
 const (
-	dClient     logTopic = "CLNT"
-	dAppend     logTopic = "APPEND_ENTRIES"
-	dCommit     logTopic = "CMIT"
-	dRefresh    logTopic = "REFRESH"
-	dStart      logTopic = "START"
-	dApply      logTopic = "APPLY"
-	dDrop       logTopic = "DROP"
-	dConnect    logTopic = "CONNECT"
-	dDisConnect logTopic = "DISCONNECT"
-	dError      logTopic = "ERRO"
-	dInfo       logTopic = "INFO"
-	dLeader     logTopic = "LEAD"
-	dLog        logTopic = "LOG1"
-	dLog2       logTopic = "LOG2"
-	dPersist    logTopic = "PERS"
-	dSnap       logTopic = "SNAP"
-	dTerm       logTopic = "TERM"
-	dTest       logTopic = "TEST"
-	dTimer      logTopic = "TIMR"
-	dTrace      logTopic = "TRCE"
-	dVote       logTopic = "VOTE"
-	dWarn       logTopic = "WARN"
+	dClient  logTopic = "CLNT"
+	dServer  logTopic = "KVSERVER"
+	dRespond logTopic = "RESPOND"
 )
 
 var debugStart time.Time
