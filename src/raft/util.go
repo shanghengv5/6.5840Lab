@@ -9,7 +9,7 @@ import (
 )
 
 // Debugging
-const Debug = 1
+const Debug = 0b0001
 
 type logTopic string
 
@@ -49,7 +49,7 @@ func init() {
 }
 
 func DPrintf(topic logTopic, format string, a ...interface{}) {
-	if getVerbosity() == Debug {
+	if getVerbosity()&Debug > 0 {
 		time := time.Since(debugStart).Microseconds()
 		time /= 100
 		prefix := fmt.Sprintf("%06d %v ", time, string(topic))

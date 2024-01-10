@@ -28,7 +28,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	if args.Term < rf.currentTerm {
 		return
 	}
-	DPrintf(dVote, "S%d=>S%d argsTerm:%d Term:%d lastLogIndex%d lastLogTerm%d voteFor%d %s", args.CandidateId, rf.me, args.Term, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm(), rf.votedFor, rf.state)
+	// DPrintf(dVote, "S%d=>S%d argsTerm:%d Term:%d lastLogIndex%d lastLogTerm%d voteFor%d %s", args.CandidateId, rf.me, args.Term, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm(), rf.votedFor, rf.state)
 	rf.sendToChannel(rf.resetTimeElectionCh, true)
 	//  The majority rule ensures that at most one candidate can win the election for a particular term (the Election Safety Property in Figure 3)
 	if rf.aboveCurrentTerm(args.Term) && rf.grantVoteCheck(args.CandidateId, args.LastLogIndex, args.LastLogTerm) {
@@ -117,7 +117,7 @@ func (rf *Raft) requestVoteRpc(server int, args *RequestVoteArgs) {
 
 // Send RequestVote RPCs to all other servers
 func (rf *Raft) broadcastRequestVote() {
-	DPrintf(dVote, "S%d start vote Term:%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
+	// DPrintf(dVote, "S%d start vote Term:%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	arg := RequestVoteArgs{
 		Term:         rf.currentTerm,
 		CandidateId:  rf.me,

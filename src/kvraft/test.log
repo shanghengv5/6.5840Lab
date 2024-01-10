@@ -1,0 +1,3 @@
+Test: one client (3A) ...
+signal: interrupt
+FAIL	6.5840/kvraft	2.476s
