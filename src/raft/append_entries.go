@@ -107,7 +107,7 @@ func (rf *Raft) broadcastAppendEntries() {
 	if rf.state != Leader {
 		return
 	}
-	// DPrintf(dAppend, "S%d lastIncludedIndex%d lastIncludeTerm%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
+	DPrintf(dAppend, "S%d lastIncludedIndex%d lastIncludeTerm%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
 	for server := range rf.peers {
 		if server == rf.me {
 			continue

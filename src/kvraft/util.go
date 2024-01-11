@@ -15,9 +15,10 @@ type logTopic string
 
 const (
 	dClient  logTopic = "CLNT"
+	dRequest logTopic = "REQ"
 	dServer  logTopic = "KVSERVER"
 	dApply   logTopic = "Applier"
-	dRespond logTopic = "RESPOND"
+	dRespond logTopic = "RESP"
 )
 
 var debugStart time.Time

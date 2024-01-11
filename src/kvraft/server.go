@@ -54,8 +54,8 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	if ok && op.RequestId == args.RequestId {
 		reply.Value = op.Value
 		reply.Err = OK
-		DPrintf(dServer, "S%d %v key(%s) checkIndex%d replyErr%v replyValue(%s) requestId%d", kv.me, op.Op, op.Key, checkIndex, reply.Err, reply.Value, args.RequestId)
 	}
+	DPrintf(dServer, "S(%d) Get key(%s) checkIndex(%d) replyErr(%v) Value(%s) requestId(%d)", kv.me, op.Key, checkIndex, reply.Err, reply.Value, args.RequestId)
 
 }
 
@@ -79,9 +79,8 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	op, ok := kv.applyLog[checkIndex]
 	if ok && op.RequestId == args.RequestId {
 		reply.Err = OK
-		DPrintf(dServer, "S%d %v key(%s) checkIndex%d replyErr%v Value(%s)", kv.me, op.Op, op.Key, checkIndex, reply.Err, op.Value)
 	}
-
+	DPrintf(dServer, "S(%d) %v key(%s) checkIndex%d replyErr(%v) Value(%s) requestId(%d)", kv.me, cmd.Op, op.Key, checkIndex, reply.Err, op.Value, args.RequestId)
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -138,11 +137,11 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 func (kv *KVServer) applier() {
 	for m := range kv.applyCh {
-		DPrintf(dApply, "S%d CommandIndex%d command%v", kv.me, m.CommandIndex, m.Command)
+		DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
 		if m.SnapshotValid {
-			kv.mu.Lock()
+			// kv.mu.Lock()
 			// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
-			kv.mu.Unlock()
+			// kv.mu.Unlock()
 		} else if m.CommandValid {
 			kv.mu.Lock()
 			op, ok := m.Command.(Op)

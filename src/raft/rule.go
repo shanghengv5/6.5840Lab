@@ -11,12 +11,14 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex && rf.lastApplied < rf.getLastLogIndex(); rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
-			DPrintf(dApply, "S%d currentTerm%d LogLength%d applyIndex%d Command%v MsgTerm%d", rf.me, rf.currentTerm, rf.getLogLength(), applyIndex, rf.getLogEntry(applyIndex).Command, rf.getLogEntry(applyIndex).Term)
-			rf.applyStateMachine(ApplyMsg{
+			if !rf.applyStateMachine(ApplyMsg{
 				Command:      rf.getLogEntry(applyIndex).Command,
 				CommandValid: true,
 				CommandIndex: applyIndex,
-			})
+			}) {
+				return
+			}
+			DPrintf(dApply, "S%d currentTerm%d LogLength%d applyIndex%d Command%v CommitIndex%d", rf.me, rf.currentTerm, rf.getLogLength(), applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
 		}
 	}
 }
@@ -64,8 +66,14 @@ func (rf *Raft) SetCommitIndex(index int) {
 	rf.commitIndex = index
 }
 
-func (rf *Raft) applyStateMachine(msg ApplyMsg) {
-	rf.applyCh <- msg
+func (rf *Raft) applyStateMachine(msg ApplyMsg) bool {
+	select {
+	case rf.applyCh <- msg:
+		return true
+	default:
+		return false
+	}
+
 }
 
 // • If RPC request or response contains term T > currentTerm:
