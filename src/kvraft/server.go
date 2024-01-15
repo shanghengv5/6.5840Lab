@@ -55,7 +55,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		reply.Value = op.Value
 		reply.Err = OK
 	}
-	DPrintf(dServer, "S(%d) Get key(%s) checkIndex(%d) replyErr(%v) Value(%s) requestId(%d)", kv.me, op.Key, checkIndex, reply.Err, reply.Value, args.RequestId)
+	// DPrintf(dServer, "S(%d) Get key(%s) checkIndex(%d) replyErr(%v) Value(%s) requestId(%d)", kv.me, op.Key, checkIndex, reply.Err, reply.Value, args.RequestId)
 
 }
 
@@ -80,7 +80,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	if ok && op.RequestId == args.RequestId {
 		reply.Err = OK
 	}
-	DPrintf(dServer, "S(%d) %v key(%s) checkIndex%d replyErr(%v) Value(%s) requestId(%d)", kv.me, cmd.Op, op.Key, checkIndex, reply.Err, op.Value, args.RequestId)
+	// DPrintf(dServer, "S(%d) %v key(%s) checkIndex%d replyErr(%v) Value(%s) requestId(%d)", kv.me, cmd.Op, op.Key, checkIndex, reply.Err, op.Value, args.RequestId)
 }
 
 // the tester calls Kill() when a KVServer instance won't

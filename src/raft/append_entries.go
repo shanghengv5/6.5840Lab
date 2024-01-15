@@ -48,7 +48,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 	}
 	rf.followerRespond()
 
-	// DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
+	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
 
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
@@ -92,7 +92,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 			} else {
 				rf.SetCommitIndex(args.LeaderCommit)
 			}
-			go rf.commitIndexAboveLastApplied()
+
 		}
 		reply.Success = true
 	} else {

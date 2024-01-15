@@ -11,13 +11,11 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 	for ; rf.lastApplied < rf.commitIndex && rf.lastApplied < rf.getLastLogIndex(); rf.lastApplied++ {
 		applyIndex := rf.lastApplied + 1
 		if rf.getLogIndex(applyIndex) > 0 {
-			if !rf.applyStateMachine(ApplyMsg{
+			rf.applyStateMachine(ApplyMsg{
 				Command:      rf.getLogEntry(applyIndex).Command,
 				CommandValid: true,
 				CommandIndex: applyIndex,
-			}) {
-				return
-			}
+			})
 			DPrintf(dApply, "S%d currentTerm%d LogLength%d applyIndex%d Command%v CommitIndex%d", rf.me, rf.currentTerm, rf.getLogLength(), applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
 		}
 	}
@@ -64,16 +62,11 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 
 func (rf *Raft) SetCommitIndex(index int) {
 	rf.commitIndex = index
+	go rf.commitIndexAboveLastApplied()
 }
 
-func (rf *Raft) applyStateMachine(msg ApplyMsg) bool {
-	select {
-	case rf.applyCh <- msg:
-		return true
-	default:
-		return false
-	}
-
+func (rf *Raft) applyStateMachine(msg ApplyMsg) {
+	rf.applyCh <- msg
 }
 
 // • If RPC request or response contains term T > currentTerm:
@@ -225,7 +218,6 @@ func (rf *Raft) existsNSetCommitIndex() {
 		}
 		if voteCount >= rf.majority/2+1 {
 			rf.SetCommitIndex(N)
-			go rf.commitIndexAboveLastApplied()
 		}
 	}
 
