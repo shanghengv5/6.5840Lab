@@ -228,17 +228,17 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
+	DPrintf(dStart, "S%d Term%d Command%v index%d", rf.me, rf.currentTerm, command, index)
 	// Your code here (2B).
 	if rf.state != Leader || rf.killed() {
 		return rf.commitIndex, rf.currentTerm, false
 	}
-
 	rf.Logs = append(rf.Logs, LogEntry{Term: rf.currentTerm, Command: command})
 	//If command received from client: append entry to local log,
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-	DPrintf(dStart, "S%d Term%d Command%v index%d", rf.me, rf.currentTerm, command, index)
+
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
 	return index, rf.currentTerm, true
 }

@@ -47,9 +47,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		return
 	}
 	rf.followerRespond()
-
-	DPrintf(dClient, "S%d(%d) => S%d lastApplied%d CommitIndex%d lastIncludedIndex%d lastIncludeTerm%d PrevLogIndex%d PrevLogTerm%d  LastLogIndex%d lastEntry%v EntriesLen%d", args.LeaderId, args.Term, rf.me, rf.lastApplied, rf.commitIndex, rf.lastIncludedIndex, rf.lastIncludedTerm, args.PrevLogIndex, args.PrevLogTerm, rf.getLastLogIndex(), rf.getLogEntry(rf.getLastLogIndex()), len(args.Entries))
-
+	DPrintf(dClient, "S%d => S%d Term%d", args.LeaderId, rf.me, rf.currentTerm)
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
 		// Reply false if log doesn’t contain an entry at prevLogIndex
@@ -107,7 +105,7 @@ func (rf *Raft) broadcastAppendEntries() {
 	if rf.state != Leader {
 		return
 	}
-	DPrintf(dAppend, "S%d lastIncludedIndex%d lastIncludeTerm%d lastApplied%d commitIndex%d matchIndex%v nextIndex%v Term%d LastLogIndex%d LastLogTerm:%d", rf.me, rf.lastIncludedIndex, rf.lastIncludedTerm, rf.lastApplied, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
+	DPrintf(dAppend, "S%d commitIndex%d matchIndex%v nextIndex%v Term%d ", rf.me, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
@@ -127,6 +125,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
+		DPrintf(dAppend, "S%d => S%d Rpc not ok", rf.me, server)
 		return
 	}
 	rf.mu.Lock()
@@ -155,7 +154,6 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 			for ; rf.getLogIndex(i) > 0 && rf.getLogEntry(i).Term != reply.XTerm; i-- {
 
 			}
-			DPrintf(dAppend, "S%d ReplyFalse i%d replyTerm%d replyIndex%d", server, i, reply.XTerm, reply.XIndex)
 			if rf.getLogEntry(i).Term == reply.XTerm && rf.getLogIndex(i) > 0 {
 				rf.nextIndex[server] = i
 			} else {

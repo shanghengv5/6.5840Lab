@@ -16,7 +16,7 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 				CommandValid: true,
 				CommandIndex: applyIndex,
 			})
-			DPrintf(dApply, "S%d currentTerm%d LogLength%d applyIndex%d Command%v CommitIndex%d", rf.me, rf.currentTerm, rf.getLogLength(), applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
+			DPrintf(dApply, "S%d applyIndex%d Command%v CommitIndex%d", rf.me, applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
 		}
 	}
 }
@@ -136,7 +136,7 @@ func (rf *Raft) becomeLeader() {
 	if rf.state != Candidate {
 		return
 	}
-	DPrintf(dLeader, "S%d become a leader term%d LastLogIndex%d LastLogTerm%d", rf.me, rf.currentTerm, rf.getLastLogIndex(), rf.getLastLogTerm())
+	DPrintf(dLeader, "S%d become a leader term%d ", rf.me, rf.currentTerm)
 	rf.Convert(Leader)
 	// (Reinitialized after election)
 	rf.initLeaderVolatile()

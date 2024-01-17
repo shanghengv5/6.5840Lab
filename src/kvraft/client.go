@@ -10,6 +10,7 @@ import (
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// You will have to modify this struct.
+	reqCh int64
 }
 
 func nrand() int64 {
@@ -23,6 +24,7 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
 	// You'll have to add code here.
+
 	return ck
 }
 
@@ -43,10 +45,11 @@ func (ck *Clerk) Get(key string) string {
 	}, GetReply{
 		Err: "",
 	}
-	DPrintf(dRequest, "Get Key(%s)  RequestId(%d)", args.Key, args.RequestId)
+
 	for reply.Err != OK {
 		// You will have to modify this function.
 		for server := range ck.servers {
+			DPrintf(dRequest, "Get=>S(%d) Key(%s)  RequestId(%d)", server, args.Key, args.RequestId)
 			if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); ok && reply.Err == OK {
 				// DPrintf(dRespond, "Get Key(%s)  value(%s) RequestId(%d)", args.Key, reply.Value, args.RequestId)
 				return reply.Value
@@ -81,10 +84,11 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	}, PutAppendReply{
 		Err: "",
 	}
-	DPrintf(dRequest, "%s Key(%s) Value(%s) RequestId(%d)", args.Op, args.Key, args.Value, args.RequestId)
+
 	for reply.Err != OK {
 		// You will have to modify this function.
 		for server := range ck.servers {
+			DPrintf(dRequest, "%s =>S(%d) Key(%s) Value(%s) RequestId(%d)", args.Op, server, args.Key, args.Value, args.RequestId)
 			if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); ok && reply.Err == OK {
 				// DPrintf(dRespond, "%s Key(%s) Value(%s) RequestId(%d)", args.Op, args.Key, args.Value, args.RequestId)
 				return

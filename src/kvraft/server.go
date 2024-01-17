@@ -3,6 +3,7 @@ package kvraft
 import (
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"6.5840/labgob"
 	"6.5840/labrpc"
@@ -32,55 +33,62 @@ type KVServer struct {
 	data         map[string]string
 	requestValid map[int64]int
 	applyLog     map[int]Op
+
+	requestCh map[int64]chan bool
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
 	cmd := Op{
 		Op:        "Get",
 		Key:       args.Key,
 		RequestId: args.RequestId,
 	}
-	checkIndex, ok := kv.requestValid[args.RequestId]
-	if !ok {
-		index, _, isLeader := kv.rf.Start(cmd)
-		if isLeader {
-			kv.requestValid[args.RequestId] = index
+	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
+	index, _, isLeader := kv.rf.Start(cmd)
+	if !isLeader {
+		reply.Err = ErrWrongLeader
+		return
+	}
+
+	for {
+		kv.mu.Lock()
+		op, ok := kv.applyLog[index]
+		kv.mu.Unlock()
+		if ok && op.RequestId == args.RequestId {
+			reply.Value = op.Value
+			reply.Err = OK
+			return
 		}
 	}
-	op, ok := kv.applyLog[checkIndex]
-	if ok && op.RequestId == args.RequestId {
-		reply.Value = op.Value
-		reply.Err = OK
-	}
-	// DPrintf(dServer, "S(%d) Get key(%s) checkIndex(%d) replyErr(%v) Value(%s) requestId(%d)", kv.me, op.Key, checkIndex, reply.Err, reply.Value, args.RequestId)
 
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
 	cmd := Op{
 		Op:        args.Op,
 		Key:       args.Key,
 		Value:     args.Value,
 		RequestId: args.RequestId,
 	}
-	checkIndex, ok := kv.requestValid[args.RequestId]
-	if !ok {
-		index, _, isLeader := kv.rf.Start(cmd)
-		if isLeader {
-			kv.requestValid[args.RequestId] = index
+
+	index, _, isLeader := kv.rf.Start(cmd)
+	if !isLeader {
+		reply.Err = ErrWrongLeader
+		return
+	}
+
+	for {
+		kv.mu.Lock()
+		op, ok := kv.applyLog[index]
+		kv.mu.Unlock()
+		if ok && op.RequestId == args.RequestId {
+			reply.Err = OK
+			return
 		}
 	}
-	op, ok := kv.applyLog[checkIndex]
-	if ok && op.RequestId == args.RequestId {
-		reply.Err = OK
-	}
-	// DPrintf(dServer, "S(%d) %v key(%s) checkIndex%d replyErr(%v) Value(%s) requestId(%d)", kv.me, cmd.Op, op.Key, checkIndex, reply.Err, op.Value, args.RequestId)
+
 }
 
 // the tester calls Kill() when a KVServer instance won't
@@ -129,47 +137,54 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.applyLog = map[int]Op{}
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-
+	kv.requestCh = make(map[int64]chan bool)
 	// You may need initialization code here.
 	go kv.applier()
 	return kv
 }
 
 func (kv *KVServer) applier() {
-	for m := range kv.applyCh {
-		DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
-		if m.SnapshotValid {
-			// kv.mu.Lock()
-			// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
-			// kv.mu.Unlock()
-		} else if m.CommandValid {
-			kv.mu.Lock()
-			op, ok := m.Command.(Op)
-			if !ok {
-				panic("Not Command Op")
+	for {
+		// DPrintf(dApply, "S(%d) Start", kv.me)
+		select {
+		case m := <-kv.applyCh:
+			DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
+			if m.SnapshotValid {
+				// kv.mu.Lock()
+				// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
+				// kv.mu.Unlock()
+			} else if m.CommandValid {
+				kv.mu.Lock()
+				op, ok := m.Command.(Op)
+				if !ok {
+					panic("Not Command Op")
+				}
+				kv.requestValid[op.RequestId] = m.CommandIndex
+				if op.Op == "Get" {
+					op.Value = kv.data[op.Key]
+				} else if op.Op == "Put" {
+					kv.data[op.Key] = op.Value
+				} else if op.Op == "Append" {
+					kv.data[op.Key] += op.Value
+				}
+				kv.applyLog[m.CommandIndex] = op
+				kv.mu.Unlock()
+				// if (m.CommandIndex+1)%kv.maxraftstate == 0 {
+				// 	w := new(bytes.Buffer)
+				// 	e := labgob.NewEncoder(w)
+				// 	e.Encode(m.CommandIndex)
+				// 	var xlog []interface{}
+				// 	// for j := 0; j <= m.CommandIndex; j++ {
+				// 	// 	xlog = append(xlog, kv.applyLog[j])
+				// 	// }
+				// 	e.Encode(xlog)
+				// 	kv.rf.Snapshot(m.CommandIndex, w.Bytes())
+				// }
 			}
-			kv.requestValid[op.RequestId] = m.CommandIndex
-			if op.Op == "Get" {
-				op.Value = kv.data[op.Key]
-			} else if op.Op == "Put" {
-				kv.data[op.Key] = op.Value
-			} else if op.Op == "Append" {
-				kv.data[op.Key] += op.Value
-			}
-			kv.applyLog[m.CommandIndex] = op
-			kv.mu.Unlock()
-
-			// if (m.CommandIndex+1)%kv.maxraftstate == 0 {
-			// 	w := new(bytes.Buffer)
-			// 	e := labgob.NewEncoder(w)
-			// 	e.Encode(m.CommandIndex)
-			// 	var xlog []interface{}
-			// 	// for j := 0; j <= m.CommandIndex; j++ {
-			// 	// 	xlog = append(xlog, kv.applyLog[j])
-			// 	// }
-			// 	e.Encode(xlog)
-			// 	kv.rf.Snapshot(m.CommandIndex, w.Bytes())
-			// }
+		case <-time.After(raft.HEARTBEAT * time.Millisecond):
+			// DPrintf(dApply, "S(%d) Return", kv.me)
 		}
+
 	}
+
 }
