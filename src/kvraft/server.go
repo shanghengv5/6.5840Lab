@@ -20,9 +20,10 @@ type Op struct {
 	RequestId int64
 }
 
-const LEADER_WAIT int64 = 500
-const WAIT int64 = 20
-const CHECK_WAIT int64 = 10
+const LEADER_WAIT int64 = 200
+const WAIT int64 = 10
+
+const CHECK_WAIT int64 = 0
 
 type KVServer struct {
 	mu      sync.Mutex
@@ -47,10 +48,11 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		Key:       args.Key,
 		RequestId: args.RequestId,
 	}
-	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
+	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
+		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
 		reply.Err = ErrTimeout
 		respTime = LEADER_WAIT
 	} else {
@@ -81,6 +83,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
+		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
 		respTime = LEADER_WAIT
 		reply.Err = ErrTimeout
 	} else {
@@ -157,7 +160,7 @@ func (kv *KVServer) applier() {
 		// DPrintf(dApply, "S(%d) Start", kv.me)
 		select {
 		case m := <-kv.applyCh:
-			DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
+			// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
 			if m.SnapshotValid {
 				// kv.mu.Lock()
 				// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
@@ -195,7 +198,7 @@ func (kv *KVServer) applier() {
 				kv.mu.Unlock()
 
 			}
-		case <-time.After(raft.HEARTBEAT * time.Millisecond):
+			// case <-time.After(time.Duration(CHECK_WAIT) * time.Millisecond):
 			// DPrintf(dApply, "S(%d) Return", kv.me)
 		}
 
