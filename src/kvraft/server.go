@@ -20,7 +20,9 @@ type Op struct {
 	RequestId int64
 }
 
+const LEADER_WAIT int64 = 500
 const WAIT int64 = 20
+const CHECK_WAIT int64 = 10
 
 type KVServer struct {
 	mu      sync.Mutex
@@ -35,7 +37,7 @@ type KVServer struct {
 	data         map[string]string
 	requestValid map[int64]Op
 
-	requestCh map[int64]chan bool
+	applyLog []Op
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
@@ -50,7 +52,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
 		reply.Err = ErrTimeout
-		respTime = raft.HEARTBEAT
+		respTime = LEADER_WAIT
 	} else {
 		reply.Err = ErrWrongLeader
 	}
@@ -64,7 +66,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 			reply.Err = OK
 			return
 		}
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
 	}
 }
 
@@ -79,7 +81,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
-		respTime = raft.HEARTBEAT
+		respTime = LEADER_WAIT
 		reply.Err = ErrTimeout
 	} else {
 		reply.Err = ErrWrongLeader
@@ -94,7 +96,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 			reply.Err = OK
 			return
 		}
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
 	}
 }
 
@@ -143,7 +145,8 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.requestValid = make(map[int64]Op)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-	kv.requestCh = make(map[int64]chan bool)
+	kv.applyLog = []Op{Op{}}
+
 	// You may need initialization code here.
 	go kv.applier()
 	return kv
@@ -176,19 +179,21 @@ func (kv *KVServer) applier() {
 						kv.data[op.Key] += op.Value
 					}
 					kv.requestValid[op.RequestId] = op
+					kv.applyLog = append(kv.applyLog, op)
 				}
-				kv.mu.Unlock()
-				// if (m.CommandIndex+1)%kv.maxraftstate == 0 {
+				// if (m.CommandIndex+1)%kv.maxraftstate == 0 && kv.maxraftstate != -1 {
 				// 	w := new(bytes.Buffer)
 				// 	e := labgob.NewEncoder(w)
 				// 	e.Encode(m.CommandIndex)
 				// 	var xlog []interface{}
-				// 	// for j := 0; j <= m.CommandIndex; j++ {
-				// 	// 	xlog = append(xlog, kv.applyLog[j])
-				// 	// }
+				// 	for j := 0; j <= m.CommandIndex; j++ {
+				// 		xlog = append(xlog, kv.applyLog[j])
+				// 	}
 				// 	e.Encode(xlog)
 				// 	kv.rf.Snapshot(m.CommandIndex, w.Bytes())
 				// }
+				kv.mu.Unlock()
+
 			}
 		case <-time.After(raft.HEARTBEAT * time.Millisecond):
 			// DPrintf(dApply, "S(%d) Return", kv.me)
