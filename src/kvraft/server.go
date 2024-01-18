@@ -20,6 +20,8 @@ type Op struct {
 	RequestId int64
 }
 
+const WAIT int64 = 20
+
 type KVServer struct {
 	mu      sync.Mutex
 	me      int
@@ -44,20 +46,26 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		RequestId: args.RequestId,
 	}
 	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-	kv.mu.Lock()
-	op, ok := kv.requestValid[args.RequestId]
-	kv.mu.Unlock()
-	if ok {
-		reply.Value = op.Value
-		reply.Err = OK
-		return
-	}
+	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
-	if !isLeader {
+	if isLeader {
+		reply.Err = ErrTimeout
+		respTime = 1000
+	} else {
 		reply.Err = ErrWrongLeader
-		return
 	}
-
+	t := time.Now()
+	for time.Since(t).Milliseconds() < respTime {
+		kv.mu.Lock()
+		op, ok := kv.requestValid[args.RequestId]
+		kv.mu.Unlock()
+		if ok {
+			reply.Value = op.Value
+			reply.Err = OK
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -68,20 +76,25 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Value:     args.Value,
 		RequestId: args.RequestId,
 	}
-	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-	kv.mu.Lock()
-	_, ok := kv.requestValid[args.RequestId]
-	kv.mu.Unlock()
-	if ok {
-		reply.Err = OK
-		return
-	}
+	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
-	if !isLeader {
+	if isLeader {
+		reply.Err = ErrTimeout
+	} else {
 		reply.Err = ErrWrongLeader
-		return
 	}
 
+	t := time.Now()
+	for time.Since(t).Milliseconds() < respTime {
+		kv.mu.Lock()
+		_, ok := kv.requestValid[args.RequestId]
+		kv.mu.Unlock()
+		if ok {
+			reply.Err = OK
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 // the tester calls Kill() when a KVServer instance won't
