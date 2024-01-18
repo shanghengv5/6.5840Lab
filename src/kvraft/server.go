@@ -31,8 +31,7 @@ type KVServer struct {
 
 	// Your definitions here.
 	data         map[string]string
-	requestValid map[int64]int
-	applyLog     map[int]Op
+	requestValid map[int64]Op
 
 	requestCh map[int64]chan bool
 }
@@ -44,22 +43,19 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		Key:       args.Key,
 		RequestId: args.RequestId,
 	}
-	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-	index, _, isLeader := kv.rf.Start(cmd)
+	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
+	kv.mu.Lock()
+	op, ok := kv.requestValid[args.RequestId]
+	kv.mu.Unlock()
+	if ok {
+		reply.Value = op.Value
+		reply.Err = OK
+		return
+	}
+	_, _, isLeader := kv.rf.Start(cmd)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
 		return
-	}
-
-	for {
-		kv.mu.Lock()
-		op, ok := kv.applyLog[index]
-		kv.mu.Unlock()
-		if ok && op.RequestId == args.RequestId {
-			reply.Value = op.Value
-			reply.Err = OK
-			return
-		}
 	}
 
 }
@@ -72,21 +68,18 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Value:     args.Value,
 		RequestId: args.RequestId,
 	}
-
-	index, _, isLeader := kv.rf.Start(cmd)
+	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
+	kv.mu.Lock()
+	_, ok := kv.requestValid[args.RequestId]
+	kv.mu.Unlock()
+	if ok {
+		reply.Err = OK
+		return
+	}
+	_, _, isLeader := kv.rf.Start(cmd)
 	if !isLeader {
 		reply.Err = ErrWrongLeader
 		return
-	}
-
-	for {
-		kv.mu.Lock()
-		op, ok := kv.applyLog[index]
-		kv.mu.Unlock()
-		if ok && op.RequestId == args.RequestId {
-			reply.Err = OK
-			return
-		}
 	}
 
 }
@@ -133,8 +126,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 	kv.data = make(map[string]string)
-	kv.requestValid = make(map[int64]int)
-	kv.applyLog = map[int]Op{}
+	kv.requestValid = make(map[int64]Op)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.requestCh = make(map[int64]chan bool)
@@ -157,17 +149,20 @@ func (kv *KVServer) applier() {
 				kv.mu.Lock()
 				op, ok := m.Command.(Op)
 				if !ok {
-					panic("Not Command Op")
+					panic("Not a op command")
 				}
-				kv.requestValid[op.RequestId] = m.CommandIndex
-				if op.Op == "Get" {
-					op.Value = kv.data[op.Key]
-				} else if op.Op == "Put" {
-					kv.data[op.Key] = op.Value
-				} else if op.Op == "Append" {
-					kv.data[op.Key] += op.Value
+				_, repeatRequestOk := kv.requestValid[op.RequestId]
+				// Repeat request don't calculate again
+				if !repeatRequestOk {
+					if op.Op == "Get" {
+						op.Value = kv.data[op.Key]
+					} else if op.Op == "Put" {
+						kv.data[op.Key] = op.Value
+					} else if op.Op == "Append" {
+						kv.data[op.Key] += op.Value
+					}
+					kv.requestValid[op.RequestId] = op
 				}
-				kv.applyLog[m.CommandIndex] = op
 				kv.mu.Unlock()
 				// if (m.CommandIndex+1)%kv.maxraftstate == 0 {
 				// 	w := new(bytes.Buffer)

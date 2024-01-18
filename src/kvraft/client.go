@@ -43,28 +43,24 @@ func (ck *Clerk) Get(key string) string {
 		Key:       key,
 		RequestId: nrand(),
 	}, GetReply{
-		Err: "",
+		Err: ErrWrongLeader,
 	}
 
-	for reply.Err != OK {
-		// You will have to modify this function.
-		for server := range ck.servers {
-			DPrintf(dRequest, "Get=>S(%d) Key(%s)  RequestId(%d)", server, args.Key, args.RequestId)
-			if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); ok && reply.Err == OK {
-				// DPrintf(dRespond, "Get Key(%s)  value(%s) RequestId(%d)", args.Key, reply.Value, args.RequestId)
-				return reply.Value
-			}
+	for server := 0; reply.Err != OK; server = ck.changeServer(server, reply.Err) {
+		if ok := ck.servers[server].Call("KVServer.Get", &args, &reply); !ok {
+			reply.Err = ErrWrongLeader
 		}
 	}
-	return ""
+	return reply.Value
 }
 
-// func (ck *Clerk) GetRpc(server int, args *GetArgs, reply *GetReply) {
-// 	ok := ck.servers[server].Call("KVServer.Get", &args, &reply)
-// 	if !ok {
-
-// 	}
-// }
+func (ck *Clerk) changeServer(server int, err Err) int {
+	if err == ErrWrongLeader {
+		server++
+		return server % len(ck.servers)
+	}
+	return server
+}
 
 // shared by Put and Append.
 //
@@ -82,19 +78,15 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 		Value:     value,
 		RequestId: nrand(),
 	}, PutAppendReply{
-		Err: "",
+		Err: ErrWrongLeader,
 	}
 
-	for reply.Err != OK {
-		// You will have to modify this function.
-		for server := range ck.servers {
-			DPrintf(dRequest, "%s =>S(%d) Key(%s) Value(%s) RequestId(%d)", args.Op, server, args.Key, args.Value, args.RequestId)
-			if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); ok && reply.Err == OK {
-				// DPrintf(dRespond, "%s Key(%s) Value(%s) RequestId(%d)", args.Op, args.Key, args.Value, args.RequestId)
-				return
-			}
+	for server := 0; reply.Err != OK; server = ck.changeServer(server, reply.Err) {
+		if ok := ck.servers[server].Call("KVServer.PutAppend", &args, &reply); !ok {
+			reply.Err = ErrWrongLeader
 		}
 	}
+
 }
 
 func (ck *Clerk) Put(key string, value string) {

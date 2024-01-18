@@ -228,7 +228,7 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-	DPrintf(dStart, "S%d Term%d Command%v index%d", rf.me, rf.currentTerm, command, index)
+
 	// Your code here (2B).
 	if rf.state != Leader || rf.killed() {
 		return rf.commitIndex, rf.currentTerm, false
@@ -238,8 +238,8 @@ func (rf *Raft) Start(command interface{}) (index int, term int, isLeader bool) 
 	// respond after entry applied to state machine
 	index = rf.getLastLogIndex()
 	rf.refreshMatchIndex(rf.me, index)
-
 	rf.sendToChannel(rf.sendAppendEntriesCh, true)
+	DPrintf(dStart, "S%d Term%d Command%v index%d", rf.me, rf.currentTerm, command, index)
 	return index, rf.currentTerm, true
 }
 

@@ -47,7 +47,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArg, reply *AppendEntriesReply)
 		return
 	}
 	rf.followerRespond()
-	DPrintf(dClient, "S%d => S%d Term%d", args.LeaderId, rf.me, rf.currentTerm)
+	// DPrintf(dClient, "S%d => S%d Term%d", args.LeaderId, rf.me, rf.currentTerm)
 	// Non Snapshot
 	if rf.getLogIndex(args.PrevLogIndex) >= 0 {
 		// Reply false if log doesn’t contain an entry at prevLogIndex
@@ -128,6 +128,7 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 		DPrintf(dAppend, "S%d => S%d Rpc not ok", rf.me, server)
 		return
 	}
+	DPrintf(dAppend, "S%d => S%d Rpc ok", rf.me, server)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
