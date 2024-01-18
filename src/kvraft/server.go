@@ -50,7 +50,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
 		reply.Err = ErrTimeout
-		respTime = 1000
+		respTime = raft.HEARTBEAT
 	} else {
 		reply.Err = ErrWrongLeader
 	}
@@ -79,6 +79,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
+		respTime = raft.HEARTBEAT
 		reply.Err = ErrTimeout
 	} else {
 		reply.Err = ErrWrongLeader
