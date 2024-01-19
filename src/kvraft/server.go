@@ -150,8 +150,6 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.applyLog = []Op{Op{}}
-
-	// DPrintf(dServer, "Max raftstate%d", maxraftstate)
 	// You may need initialization code here.
 	kv.readSnapshot(kv.rf.Persister.ReadSnapshot())
 	go kv.applier()
