@@ -1,6 +1,7 @@
 package kvraft
 
 import (
+	"bytes"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -184,17 +185,18 @@ func (kv *KVServer) applier() {
 					kv.requestValid[op.RequestId] = op
 					kv.applyLog = append(kv.applyLog, op)
 				}
-				// if (m.CommandIndex+1)%kv.maxraftstate == 0 && kv.maxraftstate != -1 {
-				// 	w := new(bytes.Buffer)
-				// 	e := labgob.NewEncoder(w)
-				// 	e.Encode(m.CommandIndex)
-				// 	var xlog []interface{}
-				// 	for j := 0; j <= m.CommandIndex; j++ {
-				// 		xlog = append(xlog, kv.applyLog[j])
-				// 	}
-				// 	e.Encode(xlog)
-				// 	kv.rf.Snapshot(m.CommandIndex, w.Bytes())
-				// }
+				if (m.CommandIndex+1-kv.rf.Persister.RaftStateSize())%kv.maxraftstate == 0 && kv.maxraftstate != -1 {
+					w := new(bytes.Buffer)
+					e := labgob.NewEncoder(w)
+					e.Encode(m.CommandIndex)
+					var xlog []interface{}
+					logLen := len(kv.applyLog)
+					for j := 0; j < logLen; j++ {
+						xlog = append(xlog, kv.applyLog[j])
+					}
+					e.Encode(xlog)
+					kv.rf.Snapshot(m.CommandIndex, w.Bytes())
+				}
 				kv.mu.Unlock()
 
 			}

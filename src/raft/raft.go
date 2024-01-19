@@ -61,7 +61,7 @@ type ApplyMsg struct {
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
 	peers     []*labrpc.ClientEnd // RPC end points of all peers
-	persister *Persister          // Object to hold this peer's persisted state
+	Persister *Persister          // Object to hold this peer's persisted state
 	me        int                 // this peer's index into peers[]
 	dead      int32               // set by Kill()
 
@@ -138,7 +138,7 @@ func (rf *Raft) persist() {
 	e.Encode(rf.lastIncludedIndex)
 	e.Encode(rf.lastIncludedTerm)
 	raftstate := w.Bytes()
-	rf.persister.Save(raftstate, rf.persister.ReadSnapshot())
+	rf.Persister.Save(raftstate, rf.Persister.ReadSnapshot())
 }
 
 // restore previously persisted state.
@@ -324,7 +324,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	rf.peers = peers
-	rf.persister = persister
+	rf.Persister = persister
 	rf.me = me
 	// Your initialization code here (2A, 2B, 2C).
 	rf.majority = len(rf.peers)

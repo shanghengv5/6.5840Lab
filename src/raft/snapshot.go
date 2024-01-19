@@ -101,7 +101,7 @@ func (rf *Raft) broadcastInstallSnapshot() {
 		LastIncludedIndex: rf.lastIncludedIndex,
 		LastIncludedTerm:  rf.lastIncludedTerm,
 		Offset:            0,
-		Data:              rf.persister.ReadSnapshot(),
+		Data:              rf.Persister.ReadSnapshot(),
 		Done:              true,
 	}
 	for server := range rf.peers {
