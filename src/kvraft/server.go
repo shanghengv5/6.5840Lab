@@ -151,9 +151,34 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.applyLog = []Op{Op{}}
 
+	// DPrintf(dServer, "Max raftstate%d", maxraftstate)
 	// You may need initialization code here.
+	kv.readSnapshot(kv.rf.Persister.ReadSnapshot())
 	go kv.applier()
 	return kv
+}
+
+func (kv *KVServer) readSnapshot(data []byte) {
+	if data == nil || len(data) < 1 { // bootstrap without any snapshot?
+		return
+	}
+	r := bytes.NewBuffer(data)
+	d := labgob.NewDecoder(r)
+	var index int
+	var kvData = make(map[string]string)
+	var requestValid = make(map[int64]Op)
+	err1 := d.Decode(&index)
+	err2 := d.Decode(&kvData)
+	err3 := d.Decode(&requestValid)
+	if err1 != nil ||
+		err2 != nil ||
+		err3 != nil {
+		panic("read snapshot error")
+	}
+	kv.mu.Lock()
+	kv.data = kvData
+	kv.requestValid = requestValid
+	kv.mu.Unlock()
 }
 
 func (kv *KVServer) applier() {
@@ -163,9 +188,7 @@ func (kv *KVServer) applier() {
 		case m := <-kv.applyCh:
 			// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
 			if m.SnapshotValid {
-				// kv.mu.Lock()
-				// err_msg = cfg.ingestSnap(i, m.Snapshot, m.SnapshotIndex)
-				// kv.mu.Unlock()
+				kv.readSnapshot(m.Snapshot)
 			} else if m.CommandValid {
 				kv.mu.Lock()
 				op, ok := m.Command.(Op)
@@ -183,18 +206,15 @@ func (kv *KVServer) applier() {
 						kv.data[op.Key] += op.Value
 					}
 					kv.requestValid[op.RequestId] = op
-					kv.applyLog = append(kv.applyLog, op)
+					// kv.applyLog = append(kv.applyLog, op)
 				}
-				if (m.CommandIndex+1-kv.rf.Persister.RaftStateSize())%kv.maxraftstate == 0 && kv.maxraftstate != -1 {
+
+				if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
 					w := new(bytes.Buffer)
 					e := labgob.NewEncoder(w)
 					e.Encode(m.CommandIndex)
-					var xlog []interface{}
-					logLen := len(kv.applyLog)
-					for j := 0; j < logLen; j++ {
-						xlog = append(xlog, kv.applyLog[j])
-					}
-					e.Encode(xlog)
+					e.Encode(kv.data)
+					e.Encode(kv.requestValid)
 					kv.rf.Snapshot(m.CommandIndex, w.Bytes())
 				}
 				kv.mu.Unlock()
