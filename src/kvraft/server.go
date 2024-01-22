@@ -15,10 +15,11 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Key       string
-	Value     string
-	Op        string
-	RequestId int64
+	Key      string
+	Value    string
+	Op       string
+	ClientId int64
+	Seq      int64
 }
 
 const LEADER_WAIT int64 = 200
@@ -37,7 +38,7 @@ type KVServer struct {
 
 	// Your definitions here.
 	data         map[string]string
-	requestValid map[int64]Op
+	requestValid map[int64]map[int64]Op
 
 	applyLog []Op
 }
@@ -45,9 +46,10 @@ type KVServer struct {
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
 	cmd := Op{
-		Op:        "Get",
-		Key:       args.Key,
-		RequestId: args.RequestId,
+		Op:       "Get",
+		Key:      args.Key,
+		ClientId: args.ClientId,
+		Seq:      args.Seq,
 	}
 	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
 	respTime := WAIT
@@ -62,7 +64,7 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	t := time.Now()
 	for time.Since(t).Milliseconds() < respTime {
 		kv.mu.Lock()
-		op, ok := kv.requestValid[args.RequestId]
+		op, ok := kv.requestValid[args.ClientId][args.Seq]
 		kv.mu.Unlock()
 		if ok {
 			reply.Value = op.Value
@@ -76,10 +78,11 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
 	cmd := Op{
-		Op:        args.Op,
-		Key:       args.Key,
-		Value:     args.Value,
-		RequestId: args.RequestId,
+		Op:       args.Op,
+		Key:      args.Key,
+		Value:    args.Value,
+		ClientId: args.ClientId,
+		Seq:      args.Seq,
 	}
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
@@ -94,7 +97,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	t := time.Now()
 	for time.Since(t).Milliseconds() < respTime {
 		kv.mu.Lock()
-		_, ok := kv.requestValid[args.RequestId]
+		_, ok := kv.requestValid[args.ClientId][args.Seq]
 		kv.mu.Unlock()
 		if ok {
 			reply.Err = OK
@@ -146,7 +149,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 	kv.data = make(map[string]string)
-	kv.requestValid = make(map[int64]Op)
+	kv.requestValid = make(map[int64]map[int64]Op)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 	kv.applyLog = []Op{Op{}}
@@ -164,7 +167,7 @@ func (kv *KVServer) readSnapshot(data []byte) {
 	d := labgob.NewDecoder(r)
 	var index int
 	var kvData = make(map[string]string)
-	var requestValid = make(map[int64]Op)
+	var requestValid = make(map[int64]map[int64]Op)
 	err1 := d.Decode(&index)
 	err2 := d.Decode(&kvData)
 	err3 := d.Decode(&requestValid)
@@ -193,9 +196,15 @@ func (kv *KVServer) applier() {
 				if !ok {
 					panic("Not a op command")
 				}
-				_, repeatRequestOk := kv.requestValid[op.RequestId]
+				// init seq map
+				if _, ok := kv.requestValid[op.ClientId]; !ok {
+					// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
+					kv.requestValid[op.ClientId] = make(map[int64]Op)
+				}
+				_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
 				// Repeat request don't calculate again
 				if !repeatRequestOk {
+
 					if op.Op == "Get" {
 						op.Value = kv.data[op.Key]
 					} else if op.Op == "Put" {
@@ -203,7 +212,13 @@ func (kv *KVServer) applier() {
 					} else if op.Op == "Append" {
 						kv.data[op.Key] += op.Value
 					}
-					kv.requestValid[op.RequestId] = op
+					DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
+					kv.requestValid[op.ClientId][op.Seq] = op
+					// for key, _ := range kv.requestValid[op.ClientId] {
+					// 	if key < op.Seq {
+					// 		delete(kv.requestValid[op.ClientId], key)
+					// 	}
+					// }
 					// kv.applyLog = append(kv.applyLog, op)
 				}
 

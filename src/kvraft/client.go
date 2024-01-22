@@ -10,7 +10,8 @@ import (
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// You will have to modify this struct.
-
+	ClerkId int64
+	Seq     int64
 }
 
 func nrand() int64 {
@@ -24,6 +25,7 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
 	// You'll have to add code here.
+	ck.ClerkId = nrand()
 
 	return ck
 }
@@ -39,9 +41,11 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Get(key string) string {
+	ck.Seq++
 	args, reply := GetArgs{
-		Key:       key,
-		RequestId: nrand(),
+		Key:      key,
+		ClientId: ck.ClerkId,
+		Seq:      ck.Seq,
 	}, GetReply{
 		Err: ErrWrongLeader,
 	}
@@ -72,11 +76,13 @@ func (ck *Clerk) changeServer(server int, err Err) int {
 // arguments. and reply must be passed as a pointer.
 func (ck *Clerk) PutAppend(key string, value string, op string) {
 	// You will have to modify this function.
+	ck.Seq++
 	args, reply := PutAppendArgs{
-		Key:       key,
-		Op:        op,
-		Value:     value,
-		RequestId: nrand(),
+		Key:      key,
+		Op:       op,
+		Value:    value,
+		ClientId: ck.ClerkId,
+		Seq:      ck.Seq,
 	}, PutAppendReply{
 		Err: ErrWrongLeader,
 	}
