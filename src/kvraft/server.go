@@ -214,11 +214,11 @@ func (kv *KVServer) applier() {
 					}
 					DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
 					kv.requestValid[op.ClientId][op.Seq] = op
-					// for key, _ := range kv.requestValid[op.ClientId] {
-					// 	if key < op.Seq {
-					// 		delete(kv.requestValid[op.ClientId], key)
-					// 	}
-					// }
+					for key, _ := range kv.requestValid[op.ClientId] {
+						if key < op.Seq {
+							delete(kv.requestValid[op.ClientId], key)
+						}
+					}
 					// kv.applyLog = append(kv.applyLog, op)
 				}
 
