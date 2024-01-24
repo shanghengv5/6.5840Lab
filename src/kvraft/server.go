@@ -39,8 +39,6 @@ type KVServer struct {
 	// Your definitions here.
 	data         map[string]string
 	requestValid map[int64]map[int64]Op
-
-	applyLog []Op
 }
 
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
@@ -152,7 +150,7 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.requestValid = make(map[int64]map[int64]Op)
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-	kv.applyLog = []Op{Op{}}
+
 	// You may need initialization code here.
 	kv.readSnapshot(kv.rf.Persister.ReadSnapshot())
 	go kv.applier()
@@ -183,60 +181,52 @@ func (kv *KVServer) readSnapshot(data []byte) {
 }
 
 func (kv *KVServer) applier() {
-	for {
-		// DPrintf(dApply, "S(%d) Start", kv.me)
-		select {
-		case m := <-kv.applyCh:
-			// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
-			if m.SnapshotValid {
-				kv.readSnapshot(m.Snapshot)
-			} else if m.CommandValid {
-				kv.mu.Lock()
-				op, ok := m.Command.(Op)
-				if !ok {
-					panic("Not a op command")
-				}
-				// init seq map
-				if _, ok := kv.requestValid[op.ClientId]; !ok {
-					// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
-					kv.requestValid[op.ClientId] = make(map[int64]Op)
-				}
-				_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
-				// Repeat request don't calculate again
-				if !repeatRequestOk {
+	for m := range kv.applyCh {
+		// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
+		if m.SnapshotValid {
+			kv.readSnapshot(m.Snapshot)
+		} else if m.CommandValid {
+			kv.mu.Lock()
+			op, ok := m.Command.(Op)
+			if !ok {
+				panic("Not a op command")
+			}
+			// init seq map
+			if _, ok := kv.requestValid[op.ClientId]; !ok {
+				// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
+				kv.requestValid[op.ClientId] = make(map[int64]Op)
+			}
+			_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
+			// Repeat request don't calculate again
+			if !repeatRequestOk {
 
-					if op.Op == "Get" {
-						op.Value = kv.data[op.Key]
-					} else if op.Op == "Put" {
-						kv.data[op.Key] = op.Value
-					} else if op.Op == "Append" {
-						kv.data[op.Key] += op.Value
-					}
-					DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
-					kv.requestValid[op.ClientId][op.Seq] = op
-					for key, _ := range kv.requestValid[op.ClientId] {
-						if key < op.Seq {
-							delete(kv.requestValid[op.ClientId], key)
-						}
-					}
-					// kv.applyLog = append(kv.applyLog, op)
+				if op.Op == "Get" {
+					op.Value = kv.data[op.Key]
+				} else if op.Op == "Put" {
+					kv.data[op.Key] = op.Value
+				} else if op.Op == "Append" {
+					kv.data[op.Key] += op.Value
 				}
-
-				if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
-					w := new(bytes.Buffer)
-					e := labgob.NewEncoder(w)
-					e.Encode(m.CommandIndex)
-					e.Encode(kv.data)
-					e.Encode(kv.requestValid)
-					kv.rf.Snapshot(m.CommandIndex, w.Bytes())
+				DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
+				kv.requestValid[op.ClientId][op.Seq] = op
+				for key, _ := range kv.requestValid[op.ClientId] {
+					if key < op.Seq {
+						delete(kv.requestValid[op.ClientId], key)
+					}
 				}
-				kv.mu.Unlock()
 
 			}
-			// case <-time.After(time.Duration(CHECK_WAIT) * time.Millisecond):
-			// DPrintf(dApply, "S(%d) Return", kv.me)
-		}
 
+			if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
+				w := new(bytes.Buffer)
+				e := labgob.NewEncoder(w)
+				e.Encode(m.CommandIndex)
+				e.Encode(kv.data)
+				e.Encode(kv.requestValid)
+				kv.rf.Snapshot(m.CommandIndex, w.Bytes())
+			}
+			kv.mu.Unlock()
+		}
 	}
 
 }
