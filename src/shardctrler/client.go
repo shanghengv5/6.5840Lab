@@ -4,14 +4,23 @@ package shardctrler
 // Shardctrler clerk.
 //
 
-import "6.5840/labrpc"
-import "time"
-import "crypto/rand"
-import "math/big"
+import (
+	"crypto/rand"
+	"math/big"
+	"time"
+
+	"6.5840/labrpc"
+)
+
+type ClientHeader struct {
+	ClientId int64
+	Seq      int64
+}
 
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// Your data here.
+	ClientHeader
 }
 
 func nrand() int64 {
@@ -25,19 +34,31 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 	ck := new(Clerk)
 	ck.servers = servers
 	// Your code here.
+	ck.ClientId = nrand()
 	return ck
+}
+
+func (ck *Clerk) getHeader() ClientHeader {
+	ck.Seq++
+	return ClientHeader{
+		ClientId: ck.ClientId,
+		Seq:      ck.Seq,
+	}
 }
 
 func (ck *Clerk) Query(num int) Config {
 	args := &QueryArgs{}
 	// Your code here.
 	args.Num = num
+	args.ClientHeader = ck.getHeader()
+	DPrintf(dClient, "%d Query Seq%d", ck.ClientId, ck.Seq)
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {
 			var reply QueryReply
 			ok := srv.Call("ShardCtrler.Query", args, &reply)
 			if ok && reply.WrongLeader == false {
+				DPrintf(dRespond, "Config%v", reply.Config)
 				return reply.Config
 			}
 		}
@@ -49,7 +70,8 @@ func (ck *Clerk) Join(servers map[int][]string) {
 	args := &JoinArgs{}
 	// Your code here.
 	args.Servers = servers
-
+	args.ClientHeader = ck.getHeader()
+	DPrintf(dClient, "%d Join", ck.ClientId)
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {
@@ -67,7 +89,7 @@ func (ck *Clerk) Leave(gids []int) {
 	args := &LeaveArgs{}
 	// Your code here.
 	args.GIDs = gids
-
+	args.ClientHeader = ck.getHeader()
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {
@@ -86,7 +108,7 @@ func (ck *Clerk) Move(shard int, gid int) {
 	// Your code here.
 	args.Shard = shard
 	args.GID = gid
-
+	args.ClientHeader = ck.getHeader()
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {

@@ -199,7 +199,6 @@ func (kv *KVServer) applier() {
 			_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
 			// Repeat request don't calculate again
 			if !repeatRequestOk {
-
 				if op.Op == "Get" {
 					op.Value = kv.data[op.Key]
 				} else if op.Op == "Put" {
@@ -228,5 +227,4 @@ func (kv *KVServer) applier() {
 			kv.mu.Unlock()
 		}
 	}
-
 }
