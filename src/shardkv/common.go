@@ -24,6 +24,12 @@ type ClientHeader struct {
 	Seq      int64
 }
 
+type PingArgs struct {
+}
+
+type PingReply struct {
+}
+
 // Put or Append
 type PutAppendArgs struct {
 	// You'll have to add definitions here.

@@ -2,7 +2,6 @@ package shardkv
 
 import (
 	"bytes"
-	"strconv"
 	"sync"
 	"time"
 
@@ -43,16 +42,23 @@ type ShardKV struct {
 	data         map[string]string
 }
 
+func (kv *ShardKV) Ping(args *PingArgs, reply *PingReply) {
+
+}
+
 func (kv *ShardKV) checkWrongGroup(key string) bool {
 	cfg := kv.mck.Query(-1)
 	gid := cfg.Shards[key2shard(key)]
 	servers := cfg.Groups[gid]
 	b := true
-	for _, server := range servers {
-		if server == strconv.Itoa(kv.me) {
+	for si := 0; si < len(servers); si++ {
+		srv := kv.make_end(servers[si])
+		ok := srv.Call("ShardKV.Ping", &PingArgs{}, &PingReply{})
+		if ok {
 			b = false
 		}
 	}
+
 	return b
 }
 
@@ -65,6 +71,7 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	}
 	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
 	if kv.checkWrongGroup(args.Key) {
+		DPrintf(dServer, "S(%d) %s Wrong Group", kv.me, cmd.Op)
 		reply.Err = ErrWrongGroup
 		return
 	}
@@ -101,6 +108,7 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		ClientHeader: args.ClientHeader,
 	}
 	if kv.checkWrongGroup(args.Key) {
+		DPrintf(dServer, "S(%d) %s Wrong Group", kv.me, cmd.Op)
 		reply.Err = ErrWrongGroup
 		return
 	}
