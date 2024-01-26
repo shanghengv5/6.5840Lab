@@ -241,11 +241,11 @@ func (sc *ShardCtrler) applier() {
 					}
 				}
 				sc.requestValid[op.ClientId][op.Seq] = op
-				// for key, _ := range sc.requestValid[op.ClientId] {
-				// 	if key < op.Seq {
-				// 		delete(sc.requestValid[op.ClientId], key)
-				// 	}
-				// }
+				for key, _ := range sc.requestValid[op.ClientId] {
+					if key < op.Seq {
+						delete(sc.requestValid[op.ClientId], key)
+					}
+				}
 
 			}
 			sc.mu.Unlock()

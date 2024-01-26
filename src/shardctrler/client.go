@@ -12,11 +12,6 @@ import (
 	"6.5840/labrpc"
 )
 
-type ClientHeader struct {
-	ClientId int64
-	Seq      int64
-}
-
 type Clerk struct {
 	servers []*labrpc.ClientEnd
 	// Your data here.
