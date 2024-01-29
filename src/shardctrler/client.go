@@ -46,14 +46,14 @@ func (ck *Clerk) Query(num int) Config {
 	// Your code here.
 	args.Num = num
 	args.ClientHeader = ck.getHeader()
-	DPrintf(dClient, "%d Query Seq%d", ck.ClientId, ck.Seq)
+	// DPrintf(dClient, "%d Query Seq%d", ck.ClientId, ck.Seq)
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {
 			var reply QueryReply
 			ok := srv.Call("ShardCtrler.Query", args, &reply)
 			if ok && reply.WrongLeader == false {
-				DPrintf(dRespond, "Config%v", reply.Config)
+				// DPrintf(dRespond, "Config%v", reply.Config)
 				return reply.Config
 			}
 		}
@@ -66,7 +66,7 @@ func (ck *Clerk) Join(servers map[int][]string) {
 	// Your code here.
 	args.Servers = servers
 	args.ClientHeader = ck.getHeader()
-	DPrintf(dClient, "%d Join", ck.ClientId)
+	// DPrintf(dClient, "%d Join", ck.ClientId)
 	for {
 		// try each known server.
 		for _, srv := range ck.servers {

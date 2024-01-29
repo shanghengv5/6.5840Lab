@@ -45,7 +45,7 @@ func (sc *ShardCtrler) Join(args *JoinArgs, reply *JoinReply) {
 		Servers:      args.Servers,
 		ClientHeader: args.ClientHeader,
 	}
-	DPrintf(dServer, "S(%d) %s Start RequestId(%d)", sc.me, cmd.Op, args.ClientId)
+	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", sc.me, cmd.Op, args.ClientId)
 	respTime := WAIT
 	_, _, isLeader := sc.rf.Start(cmd)
 	if isLeader {
@@ -133,7 +133,7 @@ func (sc *ShardCtrler) Query(args *QueryArgs, reply *QueryReply) {
 		Num:          args.Num,
 		ClientHeader: args.ClientHeader,
 	}
-	DPrintf(dServer, "S(%d) %s Start Seq(%d)", sc.me, cmd.Op, args.Seq)
+	// DPrintf(dServer, "S(%d) %s Start Seq(%d)", sc.me, cmd.Op, args.Seq)
 	respTime := WAIT
 	_, _, isLeader := sc.rf.Start(cmd)
 	if isLeader {
@@ -141,7 +141,7 @@ func (sc *ShardCtrler) Query(args *QueryArgs, reply *QueryReply) {
 	} else {
 		reply.WrongLeader = true
 	}
-	DPrintf(dServer, "S(%d) %s Is Leader:%v Seq(%d)", sc.me, cmd.Op, isLeader, args.Seq)
+
 	t := time.Now()
 	for time.Since(t).Milliseconds() < respTime {
 		sc.mu.Lock()
@@ -194,7 +194,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 
 func (sc *ShardCtrler) applier() {
 	for m := range sc.applyCh {
-		DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", sc.me, m.CommandIndex, m.Command)
+		// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", sc.me, m.CommandIndex, m.Command)
 		if m.SnapshotValid {
 			// sc.readSnapshot(m.Snapshot)
 		} else if m.CommandValid {

@@ -20,9 +20,11 @@ type Op struct {
 	// Your definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Key   string
-	Value string
-	Op    string
+	Key        string
+	Value      string
+	Op         string
+	WrongGroup bool
+	Server     string
 	ClientHeader
 }
 
@@ -40,22 +42,25 @@ type ShardKV struct {
 	mck          *shardctrler.Clerk
 	requestValid map[int64]map[int64]Op
 	data         map[string]string
+	config       shardctrler.Config
 }
 
-func (kv *ShardKV) Ping(args *PingArgs, reply *PingReply) {
-
+func (kv *ShardKV) Talk(args *TalkArgs, reply *TalkReply) {
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+	if args.Op == "Sync" {
+		kv.data = args.Data
+		kv.requestValid = args.RequestValid
+	}
 }
 
-func (kv *ShardKV) checkWrongGroup(key string) bool {
-	cfg := kv.mck.Query(-1)
-	gid := cfg.Shards[key2shard(key)]
-	servers := cfg.Groups[gid]
+func (kv *ShardKV) checkWrongGroup(key string, argsServer string) bool {
+	gid := kv.config.Shards[key2shard(key)]
+	servers := kv.config.Groups[gid]
 	b := true
-	for si := 0; si < len(servers); si++ {
-		srv := kv.make_end(servers[si])
-		ok := srv.Call("ShardKV.Ping", &PingArgs{}, &PingReply{})
-		if ok {
-			b = false
+	for _, server := range servers {
+		if server == argsServer {
+			return false
 		}
 	}
 
@@ -67,13 +72,8 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	cmd := Op{
 		Op:           "Get",
 		Key:          args.Key,
+		Server:       args.Server,
 		ClientHeader: args.ClientHeader,
-	}
-	// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-	if kv.checkWrongGroup(args.Key) {
-		DPrintf(dServer, "S(%d) %s Wrong Group", kv.me, cmd.Op)
-		reply.Err = ErrWrongGroup
-		return
 	}
 
 	respTime := WAIT
@@ -91,6 +91,10 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		op, ok := kv.requestValid[args.ClientId][args.Seq]
 		kv.mu.Unlock()
 		if ok {
+			if op.WrongGroup {
+				reply.Err = ErrWrongGroup
+				return
+			}
 			reply.Value = op.Value
 			reply.Err = OK
 			return
@@ -105,13 +109,10 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Op:           args.Op,
 		Key:          args.Key,
 		Value:        args.Value,
+		Server:       args.Server,
 		ClientHeader: args.ClientHeader,
 	}
-	if kv.checkWrongGroup(args.Key) {
-		DPrintf(dServer, "S(%d) %s Wrong Group", kv.me, cmd.Op)
-		reply.Err = ErrWrongGroup
-		return
-	}
+
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
@@ -125,9 +126,13 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	t := time.Now()
 	for time.Since(t).Milliseconds() < respTime {
 		kv.mu.Lock()
-		_, ok := kv.requestValid[args.ClientId][args.Seq]
+		op, ok := kv.requestValid[args.ClientId][args.Seq]
 		kv.mu.Unlock()
 		if ok {
+			if op.WrongGroup {
+				reply.Err = ErrWrongGroup
+				return
+			}
 			reply.Err = OK
 			return
 		}
@@ -192,6 +197,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
 
 	go kv.applier()
+	go kv.refreshConfig()
 	return kv
 }
 
@@ -218,6 +224,15 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	kv.mu.Unlock()
 }
 
+func (kv *ShardKV) refreshConfig() {
+	for {
+		kv.mu.Lock()
+		kv.config = kv.mck.Query(-1)
+		kv.mu.Unlock()
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (kv *ShardKV) applier() {
 	for m := range kv.applyCh {
 		// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
@@ -237,19 +252,45 @@ func (kv *ShardKV) applier() {
 			_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
 			// Repeat request don't calculate again
 			if !repeatRequestOk {
-				if op.Op == "Get" {
-					op.Value = kv.data[op.Key]
-				} else if op.Op == "Put" {
-					kv.data[op.Key] = op.Value
-				} else if op.Op == "Append" {
-					kv.data[op.Key] += op.Value
-				}
-				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
-				kv.requestValid[op.ClientId][op.Seq] = op
-				for key, _ := range kv.requestValid[op.ClientId] {
-					if key < op.Seq {
-						delete(kv.requestValid[op.ClientId], key)
+				if kv.checkWrongGroup(op.Key, op.Server) {
+					op.WrongGroup = true
+				} else {
+					op.WrongGroup = false
+					// Same group
+					if op.Op == "Get" {
+						op.Value = kv.data[op.Key]
+					} else if op.Op == "Put" {
+						kv.data[op.Key] = op.Value
+					} else if op.Op == "Append" {
+						kv.data[op.Key] += op.Value
 					}
+					// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
+					kv.requestValid[op.ClientId][op.Seq] = op
+					for key, _ := range kv.requestValid[op.ClientId] {
+						if key < op.Seq {
+							delete(kv.requestValid[op.ClientId], key)
+						}
+					}
+					// sync shards to other servers
+					// gid := kv.config.Shards[key2shard(op.Key)]
+					// servers := kv.config.Groups[gid]
+					// for _, serv := range servers {
+					// 	srv := kv.make_end(serv)
+					// 	args := TalkArgs{
+					// 		Op:           "sync",
+					// 		RequestValid: make(map[int64]map[int64]Op),
+					// 		Data:         make(map[string]string),
+					// 	}
+					// 	for k, v := range kv.requestValid {
+					// 		args.RequestValid[k] = v
+					// 	}
+					// 	for k, v := range kv.data {
+					// 		args.Data[k] = v
+					// 	}
+					// 	DPrintf(dServer, "Talk S(%d) => serv%s Wrong Group", kv.me, serv)
+					// 	go srv.Call("ShardKV.Talk", &args, &TalkReply{})
+
+					// }
 				}
 
 			}

@@ -17,8 +17,9 @@ const (
 	dClient  logTopic = "CLNT"
 	dRequest logTopic = "REQ"
 	dServer  logTopic = "KVSERVER"
-	dApply   logTopic = "Applier"
+	dApply   logTopic = "APPLIER"
 	dRespond logTopic = "RESP"
+	dTest    logTopic = "TEST"
 )
 
 var debugStart time.Time

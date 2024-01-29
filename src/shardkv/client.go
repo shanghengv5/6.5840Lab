@@ -85,8 +85,10 @@ func (ck *Clerk) Get(key string) string {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply GetReply
+				args.Server = servers[si]
 				ok := srv.Call("ShardKV.Get", &args, &reply)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
+					DPrintf(dRespond, "S(%s) key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Key, gid, shard, reply.Value)
 					return reply.Value
 				}
 				if ok && (reply.Err == ErrWrongGroup) {
@@ -119,8 +121,10 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply PutAppendReply
+				args.Server = servers[si]
 				ok := srv.Call("ShardKV.PutAppend", &args, &reply)
 				if ok && reply.Err == OK {
+					DPrintf(dRespond, "S(%s) key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Key, gid, shard, args.Value)
 					return
 				}
 				if ok && reply.Err == ErrWrongGroup {

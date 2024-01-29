@@ -24,10 +24,15 @@ type ClientHeader struct {
 	Seq      int64
 }
 
-type PingArgs struct {
+type TalkArgs struct {
+	Op           string
+	RequestValid map[int64]map[int64]Op
+	Data         map[string]string
 }
 
-type PingReply struct {
+type TalkReply struct {
+	RequestValid map[int64]map[int64]Op
+	Data         map[string]string
 }
 
 // Put or Append
@@ -40,6 +45,7 @@ type PutAppendArgs struct {
 	// You'll have to add definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+	Server string
 }
 
 type PutAppendReply struct {
@@ -50,6 +56,7 @@ type GetArgs struct {
 	Key string
 	// You'll have to add definitions here.
 	ClientHeader
+	Server string
 }
 
 type GetReply struct {
