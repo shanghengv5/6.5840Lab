@@ -25,14 +25,15 @@ type ClientHeader struct {
 }
 
 type TalkArgs struct {
-	Op           string
-	RequestValid map[int64]map[int64]Op
-	Data         map[string]string
+	Op     string
+	Data   map[string]string
+	Server string
+	ClientHeader
 }
 
 type TalkReply struct {
-	RequestValid map[int64]map[int64]Op
-	Data         map[string]string
+	Data map[string]string
+	Err  Err
 }
 
 // Put or Append

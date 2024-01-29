@@ -25,6 +25,7 @@ type Op struct {
 	Op         string
 	WrongGroup bool
 	Server     string
+	Data       map[string]string
 	ClientHeader
 }
 
@@ -43,14 +44,49 @@ type ShardKV struct {
 	requestValid map[int64]map[int64]Op
 	data         map[string]string
 	config       shardctrler.Config
+	ClientHeader
+}
+
+func (ck *ShardKV) getHeader() ClientHeader {
+	ck.Seq++
+	return ClientHeader{
+		ClientId: ck.ClientId,
+		Seq:      ck.Seq,
+	}
 }
 
 func (kv *ShardKV) Talk(args *TalkArgs, reply *TalkReply) {
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
-	if args.Op == "Sync" {
-		kv.data = args.Data
-		kv.requestValid = args.RequestValid
+	cmd := Op{
+		Op:           "Talk",
+		Data:         args.Data,
+		Server:       args.Server,
+		ClientHeader: args.ClientHeader,
+	}
+
+	respTime := WAIT
+	_, _, isLeader := kv.rf.Start(cmd)
+	if isLeader {
+		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
+		respTime = LEADER_WAIT
+		reply.Err = ErrTimeout
+	} else {
+		reply.Err = ErrWrongLeader
+	}
+
+	t := time.Now()
+	for time.Since(t).Milliseconds() < respTime {
+		kv.mu.Lock()
+		op, ok := kv.requestValid[args.ClientId][args.Seq]
+		kv.mu.Unlock()
+		if ok {
+			if op.WrongGroup {
+				reply.Err = ErrWrongGroup
+				return
+			}
+			reply.Err = OK
+			return
+		}
+		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
 	}
 }
 
@@ -63,7 +99,6 @@ func (kv *ShardKV) checkWrongGroup(key string, argsServer string) bool {
 			return false
 		}
 	}
-
 	return b
 }
 
@@ -195,6 +230,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
+	kv.ClientId = nrand()
 
 	go kv.applier()
 	go kv.refreshConfig()
@@ -227,7 +263,42 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 func (kv *ShardKV) refreshConfig() {
 	for {
 		kv.mu.Lock()
-		kv.config = kv.mck.Query(-1)
+		cfg := kv.mck.Query(-1)
+		if cfg.Num > kv.config.Num {
+			trans := make(map[int]bool)
+			for shard, gid := range kv.config.Shards {
+				// choose relative gid
+				if gid == kv.gid && cfg.Shards[shard] != gid {
+					trans[cfg.Shards[shard]] = false
+				}
+			}
+
+			for gid, _ := range trans {
+				servers := cfg.Groups[gid]
+				for !trans[gid] {
+					for si := 0; si < len(servers); si++ {
+						srv := kv.make_end(servers[si])
+						var reply TalkReply
+						args := TalkArgs{
+							Op:     "Talk",
+							Data:   make(map[string]string),
+							Server: servers[si],
+						}
+						args.ClientHeader = kv.getHeader()
+						for k, v := range kv.data {
+							args.Data[k] = v
+						}
+						DPrintf(dServer, "S(%d) gid(%d) refresh servers%s data%v", kv.me, kv.gid, servers[si], args.Data)
+						ok := srv.Call("ShardKV.Talk", &args, &reply)
+						if ok && reply.Err == OK {
+							trans[gid] = true
+							break
+						}
+					}
+				}
+			}
+			kv.config = cfg
+		}
 		kv.mu.Unlock()
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -263,36 +334,17 @@ func (kv *ShardKV) applier() {
 						kv.data[op.Key] = op.Value
 					} else if op.Op == "Append" {
 						kv.data[op.Key] += op.Value
+					} else if op.Op == "Talk" {
+						kv.data = op.Data
 					}
-					// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
-					kv.requestValid[op.ClientId][op.Seq] = op
-					for key, _ := range kv.requestValid[op.ClientId] {
-						if key < op.Seq {
-							delete(kv.requestValid[op.ClientId], key)
-						}
-					}
-					// sync shards to other servers
-					// gid := kv.config.Shards[key2shard(op.Key)]
-					// servers := kv.config.Groups[gid]
-					// for _, serv := range servers {
-					// 	srv := kv.make_end(serv)
-					// 	args := TalkArgs{
-					// 		Op:           "sync",
-					// 		RequestValid: make(map[int64]map[int64]Op),
-					// 		Data:         make(map[string]string),
-					// 	}
-					// 	for k, v := range kv.requestValid {
-					// 		args.RequestValid[k] = v
-					// 	}
-					// 	for k, v := range kv.data {
-					// 		args.Data[k] = v
-					// 	}
-					// 	DPrintf(dServer, "Talk S(%d) => serv%s Wrong Group", kv.me, serv)
-					// 	go srv.Call("ShardKV.Talk", &args, &TalkReply{})
-
-					// }
 				}
-
+				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
+				kv.requestValid[op.ClientId][op.Seq] = op
+				for key, _ := range kv.requestValid[op.ClientId] {
+					if key < op.Seq {
+						delete(kv.requestValid[op.ClientId], key)
+					}
+				}
 			}
 
 			if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
