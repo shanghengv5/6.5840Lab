@@ -85,7 +85,6 @@ func (ck *Clerk) Get(key string) string {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply GetReply
-				args.Server = servers[si]
 				ok := srv.Call("ShardKV.Get", &args, &reply)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
 					DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Key, shard, gid, reply.Value)
@@ -95,6 +94,9 @@ func (ck *Clerk) Get(key string) string {
 					break
 				}
 				// ... not ok, or ErrWrongLeader
+				if ok && (reply.Err == ErrConfigChange) {
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -113,7 +115,6 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args.Value = value
 	args.Op = op
 	args.ClientHeader = ck.getHeader()
-
 	for {
 		shard := key2shard(key)
 		gid := ck.config.Shards[shard]
@@ -121,7 +122,6 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply PutAppendReply
-				args.Server = servers[si]
 				ok := srv.Call("ShardKV.PutAppend", &args, &reply)
 				if ok && reply.Err == OK {
 					DPrintf(dRespond, "S(%s) Op(%s) key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Op, args.Key, shard, gid, args.Value)
@@ -131,6 +131,9 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 					break
 				}
 				// ... not ok, or ErrWrongLeader
+				if ok && (reply.Err == ErrConfigChange) {
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
 		}
 		time.Sleep(100 * time.Millisecond)

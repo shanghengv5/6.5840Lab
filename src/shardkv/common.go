@@ -10,11 +10,12 @@ package shardkv
 //
 
 const (
-	OK             = "OK"
-	ErrNoKey       = "ErrNoKey"
-	ErrWrongGroup  = "ErrWrongGroup"
-	ErrWrongLeader = "ErrWrongLeader"
-	ErrTimeout     = "ErrTimeout"
+	OK              = "OK"
+	ErrNoKey        = "ErrNoKey"
+	ErrWrongGroup   = "ErrWrongGroup"
+	ErrWrongLeader  = "ErrWrongLeader"
+	ErrTimeout      = "ErrTimeout"
+	ErrConfigChange = "ErrConfigChange"
 )
 
 type Err string
@@ -24,14 +25,14 @@ type ClientHeader struct {
 	Seq      int64
 }
 
-type TalkArgs struct {
+type PutDataArgs struct {
 	Op     string
 	Data   map[string]string
 	Server string
 	ClientHeader
 }
 
-type TalkReply struct {
+type PutDataReply struct {
 	Data map[string]string
 	Err  Err
 }
@@ -46,7 +47,6 @@ type PutAppendArgs struct {
 	// You'll have to add definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
-	Server string
 }
 
 type PutAppendReply struct {
@@ -57,7 +57,6 @@ type GetArgs struct {
 	Key string
 	// You'll have to add definitions here.
 	ClientHeader
-	Server string
 }
 
 type GetReply struct {
