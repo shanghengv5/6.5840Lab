@@ -1,21 +1,25 @@
 package shardkv
 
-import "6.5840/shardctrler"
-import "6.5840/labrpc"
-import "testing"
-import "os"
+import (
+	"os"
+	"testing"
 
-// import "log"
-import crand "crypto/rand"
-import "math/big"
-import "math/rand"
-import "encoding/base64"
-import "sync"
-import "runtime"
-import "6.5840/raft"
-import "strconv"
-import "fmt"
-import "time"
+	"6.5840/labrpc"
+	"6.5840/shardctrler"
+
+	// import "log"
+	crand "crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"math/big"
+	"math/rand"
+	"runtime"
+	"strconv"
+	"sync"
+	"time"
+
+	"6.5840/raft"
+)
 
 func randstring(n int) string {
 	b := make([]byte, 2*n)
@@ -330,6 +334,7 @@ func (cfg *config) leavem(gis []int) {
 	for _, g := range gis {
 		gids = append(gids, cfg.groups[g].gid)
 	}
+	// DPrintf(dTest, "Leave %v", gids)
 	cfg.mck.Leave(gids)
 }
 

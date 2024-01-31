@@ -26,13 +26,21 @@ type ClientHeader struct {
 }
 
 type PutDataArgs struct {
-	Op     string
-	Data   map[string]string
-	Server string
+	Op   string
+	Data map[string]string
 	ClientHeader
 }
 
 type PutDataReply struct {
+	Err Err
+}
+
+type GetDataArgs struct {
+	Op string
+	ClientHeader
+}
+
+type GetDataReply struct {
 	Data map[string]string
 	Err  Err
 }

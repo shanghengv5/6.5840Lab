@@ -87,7 +87,7 @@ func (ck *Clerk) Get(key string) string {
 				var reply GetReply
 				ok := srv.Call("ShardKV.Get", &args, &reply)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
-					DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Key, shard, gid, reply.Value)
+					DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v)", servers[si], args.Key, shard, gid, reply.Value, reply.Err)
 					return reply.Value
 				}
 				if ok && (reply.Err == ErrWrongGroup) {

@@ -25,6 +25,7 @@ type Op struct {
 	Op    string
 	Data  map[string]string
 	ClientHeader
+	Config shardctrler.Config
 }
 
 type ShardKV struct {
@@ -42,47 +43,8 @@ type ShardKV struct {
 	requestValid map[int64]map[int64]Op
 	data         map[string]string
 	config       shardctrler.Config
-	cfgSync      bool
 
 	ClientHeader
-}
-
-func (ck *ShardKV) getHeader() ClientHeader {
-	ck.Seq++
-	return ClientHeader{
-		ClientId: ck.ClientId,
-		Seq:      ck.Seq,
-	}
-}
-
-func (kv *ShardKV) PutData(args *PutDataArgs, reply *PutDataReply) {
-	cmd := Op{
-		Op:           "PutData",
-		Data:         args.Data,
-		ClientHeader: args.ClientHeader,
-	}
-
-	respTime := WAIT
-	_, _, isLeader := kv.rf.Start(cmd)
-	if isLeader {
-		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-		respTime = LEADER_WAIT
-		reply.Err = ErrTimeout
-	} else {
-		reply.Err = ErrWrongLeader
-	}
-
-	t := time.Now()
-	for time.Since(t).Milliseconds() < respTime {
-		kv.mu.Lock()
-		_, ok := kv.requestValid[args.ClientId][args.Seq]
-		kv.mu.Unlock()
-		if ok {
-			reply.Err = OK
-			return
-		}
-		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
-	}
 }
 
 func (kv *ShardKV) checkWrongGroup(key string) bool {
@@ -91,12 +53,24 @@ func (kv *ShardKV) checkWrongGroup(key string) bool {
 	return kv.config.Shards[key2shard(key)] == kv.gid
 }
 
+func (kv *ShardKV) checkConfigIsChange() bool {
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+
+	return kv.config.Num == kv.mck.Query(-1).Num
+}
+
 func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
 	cmd := Op{
 		Op:           "Get",
 		Key:          args.Key,
 		ClientHeader: args.ClientHeader,
+	}
+
+	if kv.checkConfigIsChange() {
+		reply.Err = ErrConfigChange
+		return
 	}
 
 	if kv.checkWrongGroup(args.Key) {
@@ -135,6 +109,11 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		ClientHeader: args.ClientHeader,
 	}
 
+	if kv.checkConfigIsChange() {
+		reply.Err = ErrConfigChange
+		return
+	}
+
 	if kv.checkWrongGroup(args.Key) {
 		reply.Err = ErrWrongGroup
 		return
@@ -155,7 +134,6 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		_, ok := kv.requestValid[args.ClientId][args.Seq]
 		kv.mu.Unlock()
 		if ok {
-
 			reply.Err = OK
 			return
 		}
@@ -253,17 +231,18 @@ func (kv *ShardKV) refreshConfig() {
 		kv.mu.Lock()
 		oldCfg := kv.config
 		cfg := kv.mck.Query(oldCfg.Num + 1)
-		if cfg.Num > oldCfg.Num {
-			kv.rf.Start(Op{
-				Op: "Migrate",
-				ClientHeader: ClientHeader{
-					ClientId: kv.ClientId,
-					Seq:      int64(cfg.Num),
-				},
-			})
-			kv.cfgSync = false
-		}
 		kv.mu.Unlock()
+		if cfg.Num > oldCfg.Num {
+			// kv.rf.Start(Op{
+			// 	Op:     "Migrate",
+			// 	Config: cfg,
+			// 	ClientHeader: ClientHeader{
+			// 		ClientId: kv.ClientId,
+			// 		Seq:      int64(cfg.Num),
+			// 	},
+			// })
+		}
+
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -295,6 +274,10 @@ func (kv *ShardKV) applier() {
 					kv.data[op.Key] += op.Value
 				} else if op.Op == "PutData" {
 					kv.data = op.Data
+				} else if op.Op == "GetData" {
+					op.Data = kv.data
+				} else if op.Op == "Migrate" {
+					kv.config = op.Config
 				}
 				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
 				kv.requestValid[op.ClientId][op.Seq] = op
