@@ -20,28 +20,33 @@ const (
 
 type Err string
 
+type StartCommandReply struct {
+	Err
+	Value string
+}
+
 type ClientHeader struct {
 	ClientId int64
 	Seq      int64
 }
 
-type PutDataArgs struct {
+type PushArgs struct {
 	Op   string
-	Data map[string]string
+	Data Kv
 	ClientHeader
 }
 
-type PutDataReply struct {
+type PushReply struct {
 	Err Err
 }
 
-type GetDataArgs struct {
+type PullArgs struct {
 	Op string
 	ClientHeader
 }
 
-type GetDataReply struct {
-	Data map[string]string
+type PullReply struct {
+	Data Kv
 	Err  Err
 }
 

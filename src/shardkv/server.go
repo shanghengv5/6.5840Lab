@@ -23,9 +23,13 @@ type Op struct {
 	Key   string
 	Value string
 	Op    string
-	Data  map[string]string
+	Data  Kv
 	ClientHeader
-	Config shardctrler.Config
+	Config       shardctrler.Config
+	NextCfg      shardctrler.Config
+	RequestValid map[int64]map[int64]Op
+	ShardData    ShardData
+	Gid          int
 }
 
 type ShardKV struct {
@@ -41,23 +45,24 @@ type ShardKV struct {
 	// Your definitions here.
 	mck          *shardctrler.Clerk
 	requestValid map[int64]map[int64]Op
-	data         map[string]string
-	config       shardctrler.Config
+	shardData    ShardData
+
+	CurConfig shardctrler.Config
 
 	ClientHeader
 }
 
-func (kv *ShardKV) checkWrongGroup(key string) bool {
+func (kv *ShardKV) checkIsOk(shard int) bool {
 	kv.mu.Lock()
-	defer kv.mu.Unlock()
-	return kv.config.Shards[key2shard(key)] == kv.gid
-}
-
-func (kv *ShardKV) checkConfigIsChange() bool {
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
-
-	return kv.config.Num == kv.mck.Query(-1).Num
+	shardData := kv.shardData
+	kv.mu.Unlock()
+	for s, _ := range shardData {
+		if s == shard {
+			return true
+		}
+	}
+	DPrintf(dServer, "S(%d) wrong g", kv.me)
+	return false
 }
 
 func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
@@ -68,36 +73,13 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		ClientHeader: args.ClientHeader,
 	}
 
-	if kv.checkConfigIsChange() {
-		reply.Err = ErrConfigChange
-		return
-	}
-
-	if kv.checkWrongGroup(args.Key) {
+	if !kv.checkIsOk(key2shard(cmd.Key)) {
 		reply.Err = ErrWrongGroup
 		return
 	}
-	respTime := WAIT
-	_, _, isLeader := kv.rf.Start(cmd)
-	if isLeader {
-		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-		reply.Err = ErrTimeout
-		respTime = LEADER_WAIT
-	} else {
-		reply.Err = ErrWrongLeader
-	}
-	t := time.Now()
-	for time.Since(t).Milliseconds() < respTime {
-		kv.mu.Lock()
-		op, ok := kv.requestValid[args.ClientId][args.Seq]
-		kv.mu.Unlock()
-		if ok {
-			reply.Value = op.Value
-			reply.Err = OK
-			return
-		}
-		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
-	}
+	r := kv.StartCommand(cmd)
+	reply.Err = r.Err
+	reply.Value = r.Value
 }
 
 func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
@@ -108,16 +90,14 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Value:        args.Value,
 		ClientHeader: args.ClientHeader,
 	}
-
-	if kv.checkConfigIsChange() {
-		reply.Err = ErrConfigChange
-		return
-	}
-
-	if kv.checkWrongGroup(args.Key) {
+	if !kv.checkIsOk(key2shard(cmd.Key)) {
 		reply.Err = ErrWrongGroup
 		return
 	}
+	reply.Err = kv.StartCommand(cmd).Err
+}
+
+func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 	respTime := WAIT
 	_, _, isLeader := kv.rf.Start(cmd)
 	if isLeader {
@@ -131,14 +111,16 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	t := time.Now()
 	for time.Since(t).Milliseconds() < respTime {
 		kv.mu.Lock()
-		_, ok := kv.requestValid[args.ClientId][args.Seq]
+		op, ok := kv.requestValid[cmd.ClientId][cmd.Seq]
 		kv.mu.Unlock()
 		if ok {
 			reply.Err = OK
-			return
+			reply.Value = op.Value
+			break
 		}
 		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
 	}
+	return
 }
 
 // the tester calls Kill() when a ShardKV instance won't
@@ -189,13 +171,15 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	kv.ctrlers = ctrlers
 
 	// Your initialization code here.
-	kv.data = make(map[string]string)
+	kv.shardData = NewShardData()
+
 	kv.requestValid = make(map[int64]map[int64]Op)
 	// Use something like this to talk to the shardctrler:
 	kv.mck = shardctrler.MakeClerk(kv.ctrlers)
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
+
 	kv.ClientId = nrand()
 
 	go kv.applier()
@@ -210,7 +194,7 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	r := bytes.NewBuffer(data)
 	d := labgob.NewDecoder(r)
 	var index int
-	var kvData = make(map[string]string)
+	var kvData = ShardData{}
 	var requestValid = make(map[int64]map[int64]Op)
 	err1 := d.Decode(&index)
 	err2 := d.Decode(&kvData)
@@ -221,29 +205,92 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 		panic("read snapshot error")
 	}
 	kv.mu.Lock()
-	kv.data = kvData
+	kv.shardData = make(ShardData)
 	kv.requestValid = requestValid
 	kv.mu.Unlock()
 }
 
 func (kv *ShardKV) refreshConfig() {
 	for {
+		if _, isLeader := kv.rf.GetState(); !isLeader {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
 		kv.mu.Lock()
-		oldCfg := kv.config
-		cfg := kv.mck.Query(oldCfg.Num + 1)
+		curCfg := kv.CurConfig
+		nextCfg := kv.mck.Query(kv.CurConfig.Num + 1)
+		shardData := kv.shardData
 		kv.mu.Unlock()
-		if cfg.Num > oldCfg.Num {
-			// kv.rf.Start(Op{
-			// 	Op:     "Migrate",
-			// 	Config: cfg,
-			// 	ClientHeader: ClientHeader{
-			// 		ClientId: kv.ClientId,
-			// 		Seq:      int64(cfg.Num),
-			// 	},
-			// })
+		isUpdate := true
+		for _, kv := range shardData {
+			if kv.State != Ok {
+				isUpdate = false
+				break
+			}
+		}
+
+		if isUpdate && nextCfg.Num == curCfg.Num+1 {
+			kv.StartCommand(Op{
+				Op:      "Refresh",
+				NextCfg: nextCfg,
+			})
+			// gid2Shards := make(map[int][]int)
+			// for shard, gid := range nextCfg.Shards {
+			// 	if gid == kv.gid {
+			// 		pullGid := curCfg.Shards[shard]
+			// 		gid2Shards[pullGid] = append(gid2Shards[pullGid], shard)
+			// 	}
+			// }
+			// for gid, shards := range gid2Shards {
+			// 	shardData := ShardData{}
+			// 	if gid == 0 {
+			// 		for _, shard := range shards {
+			// 			shardData[shard] = Kv{}
+			// 		}
+			// 	}
+			// 	args := Op{
+			// 		ClientHeader: kv.getHeader(),
+			// 		Op:           "Pull",
+
+			// 		Gid:     gid,
+			// 		Config:  curCfg,
+			// 		NextCfg: nextCfg,
+			// 	}
+			// 	kv.rf.Start(args)
+			// 	t := time.Now()
+			// 	for time.Since(t).Milliseconds() < LEADER_WAIT {
+			// 		kv.mu.Lock()
+			// 		_, ok := kv.requestValid[args.ClientId][args.Seq]
+			// 		kv.mu.Unlock()
+			// 		if ok {
+			// 			break
+			// 		}
+			// 		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
+			// 	}
+
+			// }
+
+			// DPrintf(dServer, "config refresh")
 		}
 
 		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
+	for s := 0; s < shardctrler.NShards; s++ {
+		// Pull
+		if newCfg.Shards[s] != 0 && // 0 ignore
+			newCfg.Shards[s] == kv.gid && // new cfg need this group
+			oldCfg.Shards[s] != kv.gid { // old cfg doesnt exists
+			kv.shardData.UpdateState(s, Pull)
+		}
+		// Share
+		if newCfg.Shards[s] != 0 && // 0 ignore
+			newCfg.Shards[s] != kv.gid && // new cfg doesnt need this group
+			oldCfg.Shards[s] == kv.gid { // old cfg  exists
+			kv.shardData.UpdateState(s, Share)
+		}
 	}
 }
 
@@ -267,17 +314,19 @@ func (kv *ShardKV) applier() {
 			// Repeat request don't calculate again
 			if !repeatRequestOk {
 				if op.Op == "Get" {
-					op.Value = kv.data[op.Key]
+					op.Value = kv.shardData.Get(key2shard(op.Key), op.Key)
 				} else if op.Op == "Put" {
-					kv.data[op.Key] = op.Value
+					kv.shardData.Put(key2shard(op.Key), op.Key, op.Value)
 				} else if op.Op == "Append" {
-					kv.data[op.Key] += op.Value
-				} else if op.Op == "PutData" {
-					kv.data = op.Data
-				} else if op.Op == "GetData" {
-					op.Data = kv.data
-				} else if op.Op == "Migrate" {
-					kv.config = op.Config
+					kv.shardData.Append(key2shard(op.Key), op.Key, op.Value)
+				} else if op.Op == "Pull" {
+
+				} else if op.Op == "Refresh" {
+					if op.NextCfg.Num == kv.CurConfig.Num+1 {
+						// set ShardData state
+						kv.updateShardDataState(kv.CurConfig, op.NextCfg)
+						kv.CurConfig = op.NextCfg
+					}
 				}
 				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
 				kv.requestValid[op.ClientId][op.Seq] = op
@@ -292,7 +341,7 @@ func (kv *ShardKV) applier() {
 				w := new(bytes.Buffer)
 				e := labgob.NewEncoder(w)
 				e.Encode(m.CommandIndex)
-				e.Encode(kv.data)
+				e.Encode(kv.shardData)
 				e.Encode(kv.requestValid)
 				kv.rf.Snapshot(m.CommandIndex, w.Bytes())
 			}

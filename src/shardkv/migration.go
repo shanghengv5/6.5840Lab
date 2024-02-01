@@ -2,17 +2,19 @@ package shardkv
 
 import "time"
 
-func (ck *ShardKV) getHeader() ClientHeader {
-	ck.Seq++
+func (kv *ShardKV) getHeader() ClientHeader {
+	kv.Seq++
 	return ClientHeader{
-		ClientId: ck.ClientId,
-		Seq:      ck.Seq,
+		ClientId: kv.ClientId,
+		Seq:      kv.Seq,
 	}
 }
 
-func (kv *ShardKV) GetData(args *GetDataArgs, reply *GetDataReply) {
+
+
+func (kv *ShardKV) Pull(args *PullArgs, reply *PullReply) {
 	cmd := Op{
-		Op:           "GetData",
+		Op:           "Pull",
 		ClientHeader: args.ClientHeader,
 	}
 
@@ -39,9 +41,9 @@ func (kv *ShardKV) GetData(args *GetDataArgs, reply *GetDataReply) {
 	}
 }
 
-func (kv *ShardKV) PutData(args *PutDataArgs, reply *PutDataReply) {
+func (kv *ShardKV) Push(args *PushArgs, reply *PushReply) {
 	cmd := Op{
-		Op:           "PutData",
+		Op:           "Push",
 		Data:         args.Data,
 		ClientHeader: args.ClientHeader,
 	}
