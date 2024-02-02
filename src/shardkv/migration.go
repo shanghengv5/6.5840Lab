@@ -21,7 +21,6 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	if args.OldConfig.Num != kv.OldConfig.Num || reply.Err != OK {
 		return
 	}
-	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s data(%v)", kv.gid, kv.me, server, args.Op, reply.Data)
 	if args.Op == "Pull" {
 		kv.StartCommand(Op{
 			Op:           "Sync",
@@ -29,7 +28,7 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 			RequestValid: reply.RequestValid,
 		})
 	}
-
+	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s data(%v)", kv.gid, kv.me, server, args.Op, reply.Data)
 }
 
 func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]Op) {

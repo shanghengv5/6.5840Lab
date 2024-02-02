@@ -29,6 +29,7 @@ type Op struct {
 	Key   string
 	Value string
 	Op    string
+	Type  string
 	ClientHeader
 	OldConfig    shardctrler.Config
 	NextCfg      shardctrler.Config

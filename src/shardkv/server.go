@@ -221,7 +221,7 @@ func (kv *ShardKV) pullData() {
 					go kv.migrateRpc(server, &args)
 				}
 			}
-			DPrintf(dMigrate, "%v PullData configNum%d (%v)", kv.gid, oldCfg.Num, gid2ShardIds)
+			DPrintf(dMigrate, "%v PullData Rpc configNum%d (%v)", kv.gid, oldCfg.Num, gid2ShardIds)
 		}
 
 		time.Sleep(100 * time.Millisecond)
@@ -252,9 +252,9 @@ func (kv *ShardKV) refreshConfig() {
 				Op:           "Refresh",
 				NextCfg:      nextCfg,
 			})
-			DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
-		}
 
+		}
+		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -276,6 +276,67 @@ func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 	}
 }
 
+func (kv *ShardKV) applyInternal(op Op) {
+	if op.Op == "Pull" {
+		if op.OldConfig.Num == kv.OldConfig.Num {
+			op.ShardData = ShardData{}
+			for _, sid := range op.ShardIds {
+				shardKv := kv.shardData[sid]
+				op.ShardData.UpdateData(sid, shardKv.Data)
+				if shardKv.State == Share {
+					kv.shardData.UpdateState(sid, Ok)
+				}
+			}
+			DPrintf(dApply, "(%d-%d)%s (%v)", kv.gid, kv.me, op.Op, op.ShardData)
+		} else {
+			op.Err = ErrConfigChange
+		}
+	} else if op.Op == "Refresh" {
+		if op.NextCfg.Num == kv.CurConfig.Num+1 {
+			// set ShardData state
+			kv.OldConfig = kv.CurConfig
+			kv.CurConfig = op.NextCfg
+			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
+		}
+	} else if op.Op == "Sync" {
+		for shard, data := range op.ShardData {
+			kv.shardData.UpdateData(shard, data.Data)
+			kv.shardData.UpdateState(shard, Ok)
+		}
+		kv.writeRequestValid(op.RequestValid)
+	}
+}
+
+func (kv *ShardKV) applyOutSide(op Op) {
+	// init seq map
+	if _, ok := kv.requestValid[op.ClientId]; !ok {
+		// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
+		kv.requestValid[op.ClientId] = make(map[int64]Op)
+	}
+	_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
+	// Repeat request don't calculate again
+	if !repeatRequestOk {
+		shard := key2shard(op.Key)
+		if !kv.checkIsOk(shard) {
+			op.Err = ErrWrongGroup
+		}
+		if op.Op == "Get" {
+			op.Value = kv.shardData.Get(shard, op.Key)
+		} else if op.Op == "Put" {
+			kv.shardData.Put(shard, op.Key, op.Value)
+		} else if op.Op == "Append" {
+			kv.shardData.Append(shard, op.Key, op.Value)
+		}
+		kv.requestValid[op.ClientId][op.Seq] = op
+
+		for key, _ := range kv.requestValid[op.ClientId] {
+			if key < op.Seq {
+				delete(kv.requestValid[op.ClientId], key)
+			}
+		}
+	}
+}
+
 func (kv *ShardKV) applier() {
 	for m := range kv.applyCh {
 		// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
@@ -287,69 +348,11 @@ func (kv *ShardKV) applier() {
 			if !ok {
 				panic("Not a op command")
 			}
-			// init seq map
-			if _, ok := kv.requestValid[op.ClientId]; !ok {
-				// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
-				kv.requestValid[op.ClientId] = make(map[int64]Op)
-			}
-			_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
-			// Repeat request don't calculate again
-			if !repeatRequestOk {
-				op.Err = OK
-				shard := key2shard(op.Key)
-				if op.Op == "Get" {
-					if !kv.checkIsOk(shard) {
-						op.Err = ErrWrongGroup
-					}
-					op.Value = kv.shardData.Get(shard, op.Key)
-				} else if op.Op == "Put" {
-					if !kv.checkIsOk(shard) {
-						op.Err = ErrWrongGroup
-					}
-					kv.shardData.Put(shard, op.Key, op.Value)
-				} else if op.Op == "Append" {
-					if !kv.checkIsOk(shard) {
-						op.Err = ErrWrongGroup
-					}
-					kv.shardData.Append(shard, op.Key, op.Value)
-				} else if op.Op == "Pull" {
-					if op.OldConfig.Num == kv.OldConfig.Num {
-						op.ShardData = ShardData{}
-						for _, sid := range op.ShardIds {
-							shardKv := kv.shardData[sid]
-							op.ShardData.UpdateData(sid, shardKv.Data)
-							if shardKv.State == Share {
-								kv.shardData.UpdateState(sid, Ok)
-							}
-						}
-						DPrintf(dApply, "(%d-%d)%s (%v)", kv.gid, kv.me, op.Op, op.ShardData)
-					} else {
-						op.Err = ErrConfigChange
-					}
-				} else if op.Op == "Refresh" {
-					if op.NextCfg.Num == kv.CurConfig.Num+1 {
-						// set ShardData state
-						kv.OldConfig = kv.CurConfig
-						kv.CurConfig = op.NextCfg
-						kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
-					}
-				} else if op.Op == "Sync" {
-					for shard, data := range op.ShardData {
-						kv.shardData.UpdateData(shard, data.Data)
-						kv.shardData.UpdateState(shard, Ok)
-					}
-					kv.writeRequestValid(op.RequestValid)
-				}
-				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)
-				if op.Err == OK {
-					kv.requestValid[op.ClientId][op.Seq] = op
-				}
-
-				for key, _ := range kv.requestValid[op.ClientId] {
-					if key < op.Seq {
-						delete(kv.requestValid[op.ClientId], key)
-					}
-				}
+			op.Err = OK
+			if op.Type == "Outside" {
+				kv.applyOutSide(op)
+			} else {
+				kv.applyInternal(op)
 			}
 
 			if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
