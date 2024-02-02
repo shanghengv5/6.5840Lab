@@ -101,12 +101,11 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 }
 
 func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
-	respTime := WAIT
+	respTime := LEADER_WAIT
 	index, _, isLeader := kv.rf.Start(cmd)
-	if isLeader {
-		respTime = LEADER_WAIT
-	} else {
+	if !isLeader {
 		reply.Err = ErrWrongLeader
+		return
 	}
 	kv.mu.Lock()
 	ch := kv.NewReplyChan(index)
@@ -116,7 +115,7 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 	case <-time.After(time.Duration(respTime) * time.Millisecond):
 		reply.Err = ErrTimeout
 	}
-	DPrintf(dServer, "(%d-%d) respond %s Key%s Value(%s) %s Index%d Seq%d", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq)
+	DPrintf(dServer, "(%d-%d) respond %s Key%s Value(%s) %s Index%d Seq%d isLeader%v", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq, isLeader)
 	return
 }
 
