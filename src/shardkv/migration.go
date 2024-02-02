@@ -18,10 +18,10 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
 
-	if args.OldConfig.Num != kv.OldConfig.Num || reply.Err == ErrConfigChange {
+	if args.OldConfig.Num != kv.OldConfig.Num || reply.Err != OK {
 		return
 	}
-	DPrintf(dMigrate, "%s reply%v", args.Op, reply)
+	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s", kv.gid, kv.me, server, args.Op)
 	if args.Op == "Pull" {
 		for shard, data := range reply.Data {
 			kv.shardData.UpdateData(shard, data.Data)

@@ -192,7 +192,7 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 		panic("read snapshot error")
 	}
 	kv.mu.Lock()
-	kv.shardData = make(ShardData)
+	kv.shardData = kvData
 	kv.requestValid = requestValid
 	kv.mu.Unlock()
 }
