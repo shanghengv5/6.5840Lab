@@ -12,23 +12,20 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	srv := kv.make_end(server)
 	var reply MigrateReply
 	ok := srv.Call("ShardKV.Pull", args, &reply)
-	if !ok {
+	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s data(%v) ok%v Err(%s)", kv.gid, kv.me, server, args.Op, reply.Data, ok, reply.Err)
+	if !ok || reply.Err != OK {
 		return
 	}
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
 
-	if args.OldConfig.Num != kv.OldConfig.Num || reply.Err != OK {
-		return
-	}
 	if args.Op == "Pull" {
 		kv.StartCommand(Op{
 			Op:           "Sync",
 			ShardData:    reply.Data,
 			RequestValid: reply.RequestValid,
+			OldConfig:    args.OldConfig,
 		})
 	}
-	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s data(%v)", kv.gid, kv.me, server, args.Op, reply.Data)
+
 }
 
 func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]Op) {

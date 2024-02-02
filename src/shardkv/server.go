@@ -50,6 +50,7 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		Op:           "Get",
 		Key:          args.Key,
 		ClientHeader: args.ClientHeader,
+		Type:         "Outside",
 	}
 
 	kv.mu.Lock()
@@ -71,6 +72,7 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Key:          args.Key,
 		Value:        args.Value,
 		ClientHeader: args.ClientHeader,
+		Type:         "Outside",
 	}
 	kv.mu.Lock()
 	if !kv.checkIsOk(key2shard(cmd.Key)) {
@@ -277,6 +279,7 @@ func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 }
 
 func (kv *ShardKV) applyInternal(op Op) {
+	DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
 	if op.Op == "Pull" {
 		if op.OldConfig.Num == kv.OldConfig.Num {
 			op.ShardData = ShardData{}
@@ -287,7 +290,6 @@ func (kv *ShardKV) applyInternal(op Op) {
 					kv.shardData.UpdateState(sid, Ok)
 				}
 			}
-			DPrintf(dApply, "(%d-%d)%s (%v)", kv.gid, kv.me, op.Op, op.ShardData)
 		} else {
 			op.Err = ErrConfigChange
 		}
@@ -299,11 +301,13 @@ func (kv *ShardKV) applyInternal(op Op) {
 			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
 		}
 	} else if op.Op == "Sync" {
-		for shard, data := range op.ShardData {
-			kv.shardData.UpdateData(shard, data.Data)
-			kv.shardData.UpdateState(shard, Ok)
+		if op.OldConfig.Num == kv.OldConfig.Num {
+			for shard, data := range op.ShardData {
+				kv.shardData.UpdateData(shard, data.Data)
+				kv.shardData.UpdateState(shard, Ok)
+			}
+			kv.writeRequestValid(op.RequestValid)
 		}
-		kv.writeRequestValid(op.RequestValid)
 	}
 }
 

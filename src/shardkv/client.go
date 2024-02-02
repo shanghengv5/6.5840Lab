@@ -86,7 +86,7 @@ func (ck *Clerk) Get(key string) string {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply GetReply
-				DPrintf(dRequest, " Get => %s key(%s) shard(%d)", servers[si], args.Key, shard)
+				// DPrintf(dRequest, " Get => %s key(%s) shard(%d)", servers[si], args.Key, shard)
 				ok := srv.Call("ShardKV.Get", &args, &reply)
 				DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v)", servers[si], args.Key, shard, gid, reply.Value, reply.Err)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
@@ -125,10 +125,10 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply PutAppendReply
-				DPrintf(dRequest, " %s => %s key(%s) shard(%d)", args.Op, servers[si], args.Key, shard)
+				// DPrintf(dRequest, " %s => %s key(%s) shard(%d)", args.Op, servers[si], args.Key, shard)
 				ok := srv.Call("ShardKV.PutAppend", &args, &reply)
+				DPrintf(dRespond, "S(%s) Op(%s) key(%s) shard(%d) gid(%d) value(%s) Err(%v)", servers[si], args.Op, args.Key, shard, gid, args.Value, reply.Err)
 				if ok && reply.Err == OK {
-					DPrintf(dRespond, "S(%s) Op(%s) key(%s) shard(%d) gid(%d) value(%s)", servers[si], args.Op, args.Key, shard, gid, args.Value)
 					return
 				}
 				if ok && reply.Err == ErrWrongGroup {
