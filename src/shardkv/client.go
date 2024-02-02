@@ -77,8 +77,10 @@ func (ck *Clerk) Get(key string) string {
 	args := GetArgs{}
 	args.Key = key
 	args.ClientHeader = ck.getHeader()
+	shard := key2shard(key)
+	DPrintf(dClient, " Get key(%s) shard(%d)", args.Key, shard)
 	for {
-		shard := key2shard(key)
+
 		gid := ck.config.Shards[shard]
 		if servers, ok := ck.config.Groups[gid]; ok {
 			// try each server for the shard.
@@ -86,8 +88,8 @@ func (ck *Clerk) Get(key string) string {
 				srv := ck.make_end(servers[si])
 				var reply GetReply
 				ok := srv.Call("ShardKV.Get", &args, &reply)
+				DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v)", servers[si], args.Key, shard, gid, reply.Value, reply.Err)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
-					DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v)", servers[si], args.Key, shard, gid, reply.Value, reply.Err)
 					return reply.Value
 				}
 				if ok && (reply.Err == ErrWrongGroup) {
@@ -115,8 +117,9 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args.Value = value
 	args.Op = op
 	args.ClientHeader = ck.getHeader()
+	shard := key2shard(key)
+	DPrintf(dClient, " %s key(%s) shard(%d)", args.Op, args.Key, shard)
 	for {
-		shard := key2shard(key)
 		gid := ck.config.Shards[shard]
 		if servers, ok := ck.config.Groups[gid]; ok {
 			for si := 0; si < len(servers); si++ {
