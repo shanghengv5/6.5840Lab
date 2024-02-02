@@ -33,7 +33,7 @@ type Op struct {
 	ClientHeader
 	OldConfig    shardctrler.Config
 	NextCfg      shardctrler.Config
-	RequestValid map[int64]map[int64]Op
+	RequestValid map[int64]map[int64]StartCommandReply
 	ShardData    ShardData
 	ShardIds     []int
 	Err          Err
@@ -43,7 +43,7 @@ type StartCommandReply struct {
 	Err
 	Value        string
 	ShardData    ShardData
-	RequestValid map[int64]map[int64]Op
+	RequestValid map[int64]map[int64]StartCommandReply
 }
 
 type ClientHeader struct {
@@ -61,7 +61,7 @@ type MigrateArgs struct {
 type MigrateReply struct {
 	Data         ShardData
 	Err          Err
-	RequestValid map[int64]map[int64]Op
+	RequestValid map[int64]map[int64]StartCommandReply
 }
 
 // Put or Append

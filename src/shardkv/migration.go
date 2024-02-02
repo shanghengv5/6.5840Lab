@@ -28,10 +28,10 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 
 }
 
-func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]Op) {
+func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]StartCommandReply) {
 	for cId, Seqs := range reqValid {
-		for seq, op := range Seqs {
-			kv.requestValid[cId][seq] = op
+		for seq, reply := range Seqs {
+			kv.requestValid[cId][seq] = reply
 		}
 	}
 }
