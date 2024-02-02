@@ -1,5 +1,7 @@
 package shardkv
 
+import "6.5840/shardctrler"
+
 //
 // Sharded key/value server.
 // Lots of replica groups, each running Raft.
@@ -10,19 +12,37 @@ package shardkv
 //
 
 const (
-	OK              = "OK"
-	ErrNoKey        = "ErrNoKey"
-	ErrWrongGroup   = "ErrWrongGroup"
-	ErrWrongLeader  = "ErrWrongLeader"
-	ErrTimeout      = "ErrTimeout"
-	ErrConfigChange = "ErrConfigChange"
+	OK              Err = "OK"
+	ErrNoKey            = "ErrNoKey"
+	ErrWrongGroup       = "ErrWrongGroup"
+	ErrWrongLeader      = "ErrWrongLeader"
+	ErrTimeout          = "ErrTimeout"
+	ErrConfigChange     = "ErrConfigChange"
 )
 
 type Err string
 
+type Op struct {
+	// Your definitions here.
+	// Field names must start with capital letters,
+	// otherwise RPC will break.
+	Key   string
+	Value string
+	Op    string
+	ClientHeader
+	OldConfig    shardctrler.Config
+	NextCfg      shardctrler.Config
+	RequestValid map[int64]map[int64]Op
+	ShardData    ShardData
+	ShardIds     []int
+	Err          Err
+}
+
 type StartCommandReply struct {
 	Err
-	Value string
+	Value        string
+	ShardData    ShardData
+	RequestValid map[int64]map[int64]Op
 }
 
 type ClientHeader struct {
@@ -30,24 +50,17 @@ type ClientHeader struct {
 	Seq      int64
 }
 
-type PushArgs struct {
-	Op   string
-	Data Kv
-	ClientHeader
-}
-
-type PushReply struct {
-	Err Err
-}
-
-type PullArgs struct {
+type MigrateArgs struct {
 	Op string
 	ClientHeader
+	OldConfig shardctrler.Config
+	ShardIds  []int
 }
 
-type PullReply struct {
-	Data Kv
-	Err  Err
+type MigrateReply struct {
+	Data         ShardData
+	Err          Err
+	RequestValid map[int64]map[int64]Op
 }
 
 // Put or Append

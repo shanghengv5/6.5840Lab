@@ -16,22 +16,6 @@ const WAIT int64 = 10
 
 const CHECK_WAIT int64 = 0
 
-type Op struct {
-	// Your definitions here.
-	// Field names must start with capital letters,
-	// otherwise RPC will break.
-	Key   string
-	Value string
-	Op    string
-	Data  Kv
-	ClientHeader
-	Config       shardctrler.Config
-	NextCfg      shardctrler.Config
-	RequestValid map[int64]map[int64]Op
-	ShardData    ShardData
-	Gid          int
-}
-
 type ShardKV struct {
 	mu           sync.Mutex
 	me           int
@@ -48,6 +32,7 @@ type ShardKV struct {
 	shardData    ShardData
 
 	CurConfig shardctrler.Config
+	OldConfig shardctrler.Config // need shards to point pull servers data
 
 	ClientHeader
 }
@@ -61,7 +46,7 @@ func (kv *ShardKV) checkIsOk(shard int) bool {
 			return true
 		}
 	}
-	DPrintf(dServer, "S(%d) gid wrong g%d", kv.me, kv.gid)
+	// DPrintf(dServer, "S(%d) wrong gId%d", kv.me, kv.gid)
 	return false
 }
 
@@ -114,8 +99,9 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 		op, ok := kv.requestValid[cmd.ClientId][cmd.Seq]
 		kv.mu.Unlock()
 		if ok {
-			reply.Err = OK
+			reply.Err = op.Err
 			reply.Value = op.Value
+			reply.ShardData = op.ShardData
 			break
 		}
 		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
@@ -184,6 +170,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 
 	go kv.applier()
 	go kv.refreshConfig()
+	go kv.pullData()
 	return kv
 }
 
@@ -210,6 +197,35 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	kv.mu.Unlock()
 }
 
+func (kv *ShardKV) pullData() {
+	for {
+		if _, isLeader := kv.rf.GetState(); !isLeader {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		kv.mu.Lock()
+		oldCfg := kv.OldConfig
+		shardData := kv.shardData
+		args := MigrateArgs{
+			ClientHeader: kv.getHeader(),
+			Op:           "Pull",
+			OldConfig:    oldCfg,
+		}
+		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
+		kv.mu.Unlock()
+
+		for gid, shardIds := range gid2ShardIds {
+			servers := oldCfg.Groups[gid]
+			args.ShardIds = shardIds
+
+			for _, server := range servers {
+				go kv.migrateRpc(server, &args)
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (kv *ShardKV) refreshConfig() {
 	for {
 		if _, isLeader := kv.rf.GetState(); !isLeader {
@@ -228,51 +244,13 @@ func (kv *ShardKV) refreshConfig() {
 				break
 			}
 		}
-
 		if isUpdate && nextCfg.Num == curCfg.Num+1 {
 			kv.StartCommand(Op{
-				Op:      "Refresh",
-				NextCfg: nextCfg,
+				ClientHeader: kv.getHeader(),
+				Op:           "Refresh",
+				NextCfg:      nextCfg,
 			})
-			// gid2Shards := make(map[int][]int)
-			// for shard, gid := range nextCfg.Shards {
-			// 	if gid == kv.gid {
-			// 		pullGid := curCfg.Shards[shard]
-			// 		gid2Shards[pullGid] = append(gid2Shards[pullGid], shard)
-			// 	}
-			// }
-			// for gid, shards := range gid2Shards {
-			// 	shardData := ShardData{}
-			// 	if gid == 0 {
-			// 		for _, shard := range shards {
-			// 			shardData[shard] = Kv{}
-			// 		}
-			// 	}
-			// 	args := Op{
-			// 		ClientHeader: kv.getHeader(),
-			// 		Op:           "Pull",
-
-			// 		Gid:     gid,
-			// 		Config:  curCfg,
-			// 		NextCfg: nextCfg,
-			// 	}
-			// 	kv.rf.Start(args)
-			// 	t := time.Now()
-			// 	for time.Since(t).Milliseconds() < LEADER_WAIT {
-			// 		kv.mu.Lock()
-			// 		_, ok := kv.requestValid[args.ClientId][args.Seq]
-			// 		kv.mu.Unlock()
-			// 		if ok {
-			// 			break
-			// 		}
-			// 		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
-			// 	}
-
-			// }
-
-			// DPrintf(dServer, "config refresh")
 		}
-
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -280,13 +258,13 @@ func (kv *ShardKV) refreshConfig() {
 func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 	for s := 0; s < shardctrler.NShards; s++ {
 		// Pull
-		if newCfg.Shards[s] != 0 && // 0 ignore
+		if oldCfg.Shards[s] != 0 && // 0 ignore
 			newCfg.Shards[s] == kv.gid && // new cfg need this group
 			oldCfg.Shards[s] != kv.gid { // old cfg doesnt exists
 			kv.shardData.UpdateState(s, Pull)
 		}
 		// Share
-		if newCfg.Shards[s] != 0 && // 0 ignore
+		if oldCfg.Shards[s] != 0 && // 0 ignore
 			newCfg.Shards[s] != kv.gid && // new cfg doesnt need this group
 			oldCfg.Shards[s] == kv.gid { // old cfg  exists
 			kv.shardData.UpdateState(s, Share)
@@ -313,6 +291,7 @@ func (kv *ShardKV) applier() {
 			_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
 			// Repeat request don't calculate again
 			if !repeatRequestOk {
+				op.Err = OK
 				if op.Op == "Get" {
 					op.Value = kv.shardData.Get(key2shard(op.Key), op.Key)
 				} else if op.Op == "Put" {
@@ -320,12 +299,24 @@ func (kv *ShardKV) applier() {
 				} else if op.Op == "Append" {
 					kv.shardData.Append(key2shard(op.Key), op.Key, op.Value)
 				} else if op.Op == "Pull" {
-
+					if op.OldConfig.Num == kv.OldConfig.Num {
+						op.ShardData = ShardData{}
+						for _, sid := range op.ShardIds {
+							shardKv := kv.shardData[sid]
+							op.ShardData.UpdateData(sid, shardKv.Data)
+							if shardKv.State == Share {
+								kv.shardData.UpdateState(sid, Ok)
+							}
+						}
+					} else {
+						op.Err = ErrConfigChange
+					}
 				} else if op.Op == "Refresh" {
 					if op.NextCfg.Num == kv.CurConfig.Num+1 {
 						// set ShardData state
-						kv.updateShardDataState(kv.CurConfig, op.NextCfg)
+						kv.OldConfig = kv.CurConfig
 						kv.CurConfig = op.NextCfg
+						kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
 					}
 				}
 				// DPrintf(dApply, "S(%d) %v Value(%s) repeat ClientId%d Seq%d", kv.me, op.Op, op.Value, op.ClientId, op.Seq)

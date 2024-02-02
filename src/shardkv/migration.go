@@ -1,7 +1,5 @@
 package shardkv
 
-import "time"
-
 func (kv *ShardKV) getHeader() ClientHeader {
 	kv.Seq++
 	return ClientHeader{
@@ -10,63 +8,47 @@ func (kv *ShardKV) getHeader() ClientHeader {
 	}
 }
 
-
-
-func (kv *ShardKV) Pull(args *PullArgs, reply *PullReply) {
-	cmd := Op{
-		Op:           "Pull",
-		ClientHeader: args.ClientHeader,
+func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
+	srv := kv.make_end(server)
+	var reply MigrateReply
+	ok := srv.Call("ShardKV.Pull", args, &reply)
+	if !ok {
+		return
 	}
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
 
-	respTime := WAIT
-	_, _, isLeader := kv.rf.Start(cmd)
-	if isLeader {
-		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-		reply.Err = ErrTimeout
-		respTime = LEADER_WAIT
-	} else {
-		reply.Err = ErrWrongLeader
+	if args.OldConfig.Num != kv.OldConfig.Num || reply.Err == ErrConfigChange {
+		return
 	}
-	t := time.Now()
-	for time.Since(t).Milliseconds() < respTime {
-		kv.mu.Lock()
-		op, ok := kv.requestValid[args.ClientId][args.Seq]
-		kv.mu.Unlock()
-		if ok {
-			reply.Data = op.Data
-			reply.Err = OK
-			return
+	DPrintf(dMigrate, "%s reply%v", args.Op, reply)
+	if args.Op == "Pull" {
+		for shard, data := range reply.Data {
+			kv.shardData.UpdateData(shard, data.Data)
+			kv.shardData.UpdateState(shard, Ok)
 		}
-		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
+		kv.writeRequestValid(reply.RequestValid)
 	}
 }
 
-func (kv *ShardKV) Push(args *PushArgs, reply *PushReply) {
-	cmd := Op{
-		Op:           "Push",
-		Data:         args.Data,
-		ClientHeader: args.ClientHeader,
-	}
-
-	respTime := WAIT
-	_, _, isLeader := kv.rf.Start(cmd)
-	if isLeader {
-		// DPrintf(dServer, "S(%d) %s Start RequestId(%d)", kv.me, cmd.Op, args.RequestId)
-		respTime = LEADER_WAIT
-		reply.Err = ErrTimeout
-	} else {
-		reply.Err = ErrWrongLeader
-	}
-
-	t := time.Now()
-	for time.Since(t).Milliseconds() < respTime {
-		kv.mu.Lock()
-		_, ok := kv.requestValid[args.ClientId][args.Seq]
-		kv.mu.Unlock()
-		if ok {
-			reply.Err = OK
-			return
+func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]Op) {
+	for cId, Seqs := range reqValid {
+		for seq, op := range Seqs {
+			kv.requestValid[cId][seq] = op
 		}
-		time.Sleep(time.Duration(CHECK_WAIT) * time.Millisecond)
 	}
+}
+
+func (kv *ShardKV) Pull(args *MigrateArgs, reply *MigrateReply) {
+	cmd := Op{
+		Op:           "Pull",
+		OldConfig:    args.OldConfig,
+		ClientHeader: args.ClientHeader,
+		ShardIds:     args.ShardIds,
+	}
+
+	r := kv.StartCommand(cmd)
+	reply.Data = r.ShardData
+	reply.Err = r.Err
+	reply.RequestValid = r.RequestValid
 }

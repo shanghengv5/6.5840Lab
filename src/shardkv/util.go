@@ -17,6 +17,7 @@ const (
 	dClient  logTopic = "CLNT"
 	dRequest logTopic = "REQ"
 	dServer  logTopic = "KVSERVER"
+	dMigrate logTopic = "Migrate"
 	dApply   logTopic = "APPLIER"
 	dRespond logTopic = "RESP"
 	dTest    logTopic = "TEST"

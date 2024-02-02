@@ -16,6 +16,21 @@ const (
 	Drop
 )
 
+func (s State) String() string {
+	switch s {
+	case Ok:
+		return "Ok"
+	case Share:
+		return "Share"
+	case Pull:
+		return "Share"
+	case Drop:
+		return "Share"
+	}
+
+	return ""
+}
+
 type Kv struct {
 	Data  map[string]string
 	State State
@@ -44,8 +59,31 @@ func (s ShardData) Append(shard int, key string, value string) {
 	s.Put(shard, key, s.Get(shard, key)+value)
 }
 
+func (s ShardData) UpdateData(shard int, data map[string]string) {
+	kv := s[shard]
+	newData := make(map[string]string)
+	for k, v := range data {
+		newData[k] = v
+	}
+	kv.Data = newData
+	s[shard] = kv
+}
+
 func (s ShardData) UpdateState(shard int, state State) {
 	kv := s[shard]
 	kv.State = state
 	s[shard] = kv
+}
+
+func (s ShardData) getGid2ShardIds(state State, oldCfg shardctrler.Config) (gid2ShardIds map[int][]int) {
+	gid2ShardIds = make(map[int][]int)
+	for shard, data := range s {
+		if data.State != state {
+			continue
+		}
+		gid := oldCfg.Shards[shard]
+		gid2ShardIds[gid] = append(gid2ShardIds[gid], shard)
+	}
+
+	return
 }
