@@ -64,7 +64,6 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	if ok {
 		reply.Err = r.Err
 		reply.Value = r.Value
-		DPrintf(dServer, "(%d-%d) respondByOld %s Key%s Value%s %s  Seq%d", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, cmd.Seq)
 		kv.mu.Unlock()
 		return
 	}
