@@ -57,11 +57,11 @@ func (kv *ShardKV) checkIsOk(shard int) bool {
 	shardData := kv.shardData
 	kv.mu.Unlock()
 	for s, _ := range shardData {
-		if s == shard {
+		if s == shard && kv.CurConfig.Shards[shard] == kv.gid {
 			return true
 		}
 	}
-	DPrintf(dServer, "S(%d) wrong g", kv.me)
+	DPrintf(dServer, "S(%d) gid wrong g%d", kv.me, kv.gid)
 	return false
 }
 
