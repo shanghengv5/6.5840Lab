@@ -64,6 +64,7 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	if ok {
 		reply.Err = r.Err
 		reply.Value = r.Value
+		DPrintf(dServer, "(%d-%d) respondByOld %s Key%s Value%s %s  Seq%d", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, cmd.Seq)
 		kv.mu.Unlock()
 		return
 	}
@@ -96,6 +97,7 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	}
 	kv.mu.Unlock()
 	reply.Err = kv.StartCommand(cmd).Err
+
 }
 
 func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
@@ -108,16 +110,13 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 	}
 	kv.mu.Lock()
 	ch := kv.NewReplyChan(index)
-
 	kv.mu.Unlock()
-
 	select {
 	case reply = <-ch:
-		return
 	case <-time.After(time.Duration(respTime) * time.Millisecond):
 		reply.Err = ErrTimeout
 	}
-
+	DPrintf(dServer, "(%d-%d) respond %s Key%s Value(%s) %s Index%d Seq%d", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq)
 	return
 }
 
@@ -281,7 +280,6 @@ func (kv *ShardKV) refreshConfig() {
 				Op:           "Refresh",
 				NextCfg:      nextCfg,
 			})
-
 		}
 		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
 		time.Sleep(100 * time.Millisecond)
@@ -306,7 +304,7 @@ func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 }
 
 func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
-	DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
+	// DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
 	if op.Op == "Pull" {
 		if op.OldConfig.Num == kv.OldConfig.Num {
 			reply.ShardData = ShardData{}
@@ -350,6 +348,7 @@ func (kv *ShardKV) applyOutSide(op Op, reply *StartCommandReply) {
 		shard := key2shard(op.Key)
 		if !kv.checkIsOk(shard) {
 			reply.Err = ErrWrongGroup
+			return
 		}
 		if op.Op == "Get" {
 			reply.Value = kv.shardData.Get(shard, op.Key)
