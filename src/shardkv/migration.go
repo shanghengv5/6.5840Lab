@@ -1,18 +1,10 @@
 package shardkv
 
-func (kv *ShardKV) getHeader() ClientHeader {
-	kv.Seq++
-	return ClientHeader{
-		ClientId: kv.ClientId,
-		Seq:      kv.Seq,
-	}
-}
-
 func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	srv := kv.make_end(server)
 	var reply MigrateReply
 	ok := srv.Call("ShardKV.Pull", args, &reply)
-	DPrintf(dMigrate, "S(%d-%d) =>(%s) %s data(%v) ok%v Err(%s)", kv.gid, kv.me, server, args.Op, reply.Data, ok, reply.Err)
+	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s) data(%v) ok(%v) Err(%s) ", kv.gid, kv.me, server, args.Op, reply.Data, ok, reply.Err)
 	if !ok || reply.Err != OK {
 		return
 	}
@@ -25,23 +17,28 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 			OldConfig:    args.OldConfig,
 		})
 	}
-
 }
 
-func (kv *ShardKV) writeRequestValid(reqValid map[int64]map[int64]StartCommandReply) {
-	for cId, Seqs := range reqValid {
-		for seq, reply := range Seqs {
-			kv.requestValid[cId][seq] = reply
+func (kv *ShardKV) updateRequestValid(op Op) {
+	if kv.requestIsDone(op) {
+		return
+	}
+	kv.requestValid[op.ClientId] = op.Seq
+}
+
+func writeRequestValid(src map[int64]int64, dst map[int64]int64) {
+	for cId, seq := range src {
+		if dst[cId] < seq {
+			dst[cId] = seq
 		}
 	}
 }
 
 func (kv *ShardKV) Pull(args *MigrateArgs, reply *MigrateReply) {
 	cmd := Op{
-		Op:           "Pull",
-		OldConfig:    args.OldConfig,
-		ClientHeader: args.ClientHeader,
-		ShardIds:     args.ShardIds,
+		Op:        "Pull",
+		OldConfig: args.OldConfig,
+		ShardIds:  args.ShardIds,
 	}
 
 	r := kv.StartCommand(cmd)

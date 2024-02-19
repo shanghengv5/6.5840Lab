@@ -88,7 +88,7 @@ func (ck *Clerk) Get(key string) string {
 				var reply GetReply
 				// DPrintf(dRequest, " Get => %s key(%s) shard(%d)", servers[si], args.Key, shard)
 				ok := srv.Call("ShardKV.Get", &args, &reply)
-				DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v) Seq%d", servers[si], args.Key, shard, gid, reply.Value, reply.Err, args.Seq)
+				// DPrintf(dRespond, "S(%s) Get key(%s) shard(%d) gid(%d) value(%s) Err(%v) Seq%d", servers[si], args.Key, shard, gid, reply.Value, reply.Err, args.Seq)
 				if ok && (reply.Err == OK || reply.Err == ErrNoKey) {
 					return reply.Value
 				}

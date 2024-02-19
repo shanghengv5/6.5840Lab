@@ -62,6 +62,9 @@ func (s ShardData) Append(shard int, key string, value string) {
 func (s ShardData) UpdateData(shard int, data map[string]string) {
 	kv := s[shard]
 	newData := make(map[string]string)
+	for k, v := range kv.Data {
+		newData[k] = v
+	}
 	for k, v := range data {
 		newData[k] = v
 	}

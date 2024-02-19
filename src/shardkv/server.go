@@ -28,14 +28,17 @@ type ShardKV struct {
 
 	// Your definitions here.
 	mck          *shardctrler.Clerk
-	requestValid map[int64]map[int64]StartCommandReply
+	requestValid map[int64]int64
 	shardData    ShardData
 
 	CurConfig shardctrler.Config
 	OldConfig shardctrler.Config // need shards to point pull servers data
 
 	index2ReplyChan map[int]chan StartCommandReply
-	ClientHeader
+}
+
+func (kv *ShardKV) requestIsDone(cmd Op) bool {
+	return kv.requestValid[cmd.ClientId] >= cmd.Seq
 }
 
 func (kv *ShardKV) checkIsOk(shard int) bool {
@@ -60,15 +63,8 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		kv.mu.Unlock()
 		return
 	}
-	r, ok := kv.requestValid[cmd.ClientId][cmd.Seq]
-	if ok {
-		reply.Err = r.Err
-		reply.Value = r.Value
-		kv.mu.Unlock()
-		return
-	}
 	kv.mu.Unlock()
-	r = kv.StartCommand(cmd)
+	r := kv.StartCommand(cmd)
 	reply.Err = r.Err
 	reply.Value = r.Value
 }
@@ -88,11 +84,11 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		kv.mu.Unlock()
 		return
 	}
-	r, ok := kv.requestValid[cmd.ClientId][cmd.Seq]
-	if ok {
-		reply.Err = r.Err
+	if kv.requestIsDone(cmd) {
+		reply.Err = OK
 		kv.mu.Unlock()
 		return
+
 	}
 	kv.mu.Unlock()
 	reply.Err = kv.StartCommand(cmd).Err
@@ -114,7 +110,7 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 	case <-time.After(time.Duration(respTime) * time.Millisecond):
 		reply.Err = ErrTimeout
 	}
-	DPrintf(dServer, "(%d-%d) respond %s Key%s Value(%s) %s Index%d Seq%d isLeader%v", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq, isLeader)
+	DPrintf(dServer, "(%d-%d) %s Key(%s) Value(%s) %s Index(%d) Seq(%d) isLeader(%v)", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq, isLeader)
 	return
 }
 
@@ -168,15 +164,13 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	// Your initialization code here.
 	kv.shardData = NewShardData()
 	kv.index2ReplyChan = make(map[int]chan StartCommandReply)
-	kv.requestValid = make(map[int64]map[int64]StartCommandReply)
+	kv.requestValid = make(map[int64]int64)
 	// Use something like this to talk to the shardctrler:
 	kv.mck = shardctrler.MakeClerk(kv.ctrlers)
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-
-	kv.ClientId = nrand()
-
+	kv.readSnapshot(kv.rf.Persister.ReadSnapshot())
 	go kv.applier()
 	go kv.refreshConfig()
 	go kv.pullData()
@@ -197,7 +191,19 @@ func (kv *ShardKV) sendReplyToChan(index int, reply StartCommandReply) {
 		default:
 		}
 	}
+}
 
+func (kv *ShardKV) writeSnapshot(index int) {
+	if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
+		w := new(bytes.Buffer)
+		e := labgob.NewEncoder(w)
+		// e.Encode(m.CommandIndex)
+		e.Encode(kv.CurConfig)
+		e.Encode(kv.OldConfig)
+		e.Encode(kv.shardData)
+		e.Encode(kv.requestValid)
+		kv.rf.Snapshot(index, w.Bytes())
+	}
 }
 
 func (kv *ShardKV) readSnapshot(data []byte) {
@@ -206,18 +212,23 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	}
 	r := bytes.NewBuffer(data)
 	d := labgob.NewDecoder(r)
-	var index int
+	var curConfig shardctrler.Config
+	var oldConfig shardctrler.Config
 	var kvData = ShardData{}
-	var requestValid = make(map[int64]map[int64]StartCommandReply)
-	err1 := d.Decode(&index)
-	err2 := d.Decode(&kvData)
-	err3 := d.Decode(&requestValid)
+	var requestValid = make(map[int64]int64)
+	err1 := d.Decode(&curConfig)
+	err2 := d.Decode(&oldConfig)
+	err3 := d.Decode(&kvData)
+	err4 := d.Decode(&requestValid)
 	if err1 != nil ||
 		err2 != nil ||
-		err3 != nil {
+		err3 != nil ||
+		err4 != nil {
 		panic("read snapshot error")
 	}
 	kv.mu.Lock()
+	kv.CurConfig = curConfig
+	kv.OldConfig = oldConfig
 	kv.shardData = kvData
 	kv.requestValid = requestValid
 	kv.mu.Unlock()
@@ -233,9 +244,8 @@ func (kv *ShardKV) pullData() {
 		oldCfg := kv.OldConfig
 		shardData := kv.shardData
 		args := MigrateArgs{
-			ClientHeader: kv.getHeader(),
-			Op:           "Pull",
-			OldConfig:    oldCfg,
+			Op:        "Pull",
+			OldConfig: oldCfg,
 		}
 		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
 		kv.mu.Unlock()
@@ -246,8 +256,9 @@ func (kv *ShardKV) pullData() {
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
+				DPrintf(dMigrate, "%v PullData servers%v configNum%d (%v)", kv.gid, servers, oldCfg.Num, gid2ShardIds)
 			}
-			DPrintf(dMigrate, "%v PullData Rpc configNum%d (%v)", kv.gid, oldCfg.Num, gid2ShardIds)
+
 		}
 
 		time.Sleep(100 * time.Millisecond)
@@ -274,9 +285,8 @@ func (kv *ShardKV) refreshConfig() {
 		}
 		if isUpdate && nextCfg.Num == curCfg.Num+1 {
 			kv.StartCommand(Op{
-				ClientHeader: kv.getHeader(),
-				Op:           "Refresh",
-				NextCfg:      nextCfg,
+				Op:      "Refresh",
+				NextCfg: nextCfg,
 			})
 		}
 		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
@@ -312,6 +322,7 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 				if shardKv.State == Share {
 					kv.shardData.UpdateState(sid, Ok)
 				}
+				writeRequestValid(kv.requestValid, reply.RequestValid)
 			}
 		} else {
 			reply.Err = ErrConfigChange
@@ -329,40 +340,32 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 				kv.shardData.UpdateData(shard, data.Data)
 				kv.shardData.UpdateState(shard, Ok)
 			}
-			kv.writeRequestValid(op.RequestValid)
+			writeRequestValid(op.RequestValid, kv.requestValid)
+		} else {
+			DPrintf(dMigrate, "%s opOldConfigNum%d myOldConfigNum%d", op.Op, op.OldConfig.Num, kv.OldConfig.Num)
 		}
 	}
 }
 
 func (kv *ShardKV) applyOutSide(op Op, reply *StartCommandReply) {
 	// init seq map
-	if _, ok := kv.requestValid[op.ClientId]; !ok {
-		// DPrintf(dApply, "S(%d) set ClientId%d", kv.me, op.ClientId)
-		kv.requestValid[op.ClientId] = make(map[int64]StartCommandReply)
-	}
-	_, repeatRequestOk := kv.requestValid[op.ClientId][op.Seq]
 	// Repeat request don't calculate again
-	if !repeatRequestOk {
-		shard := key2shard(op.Key)
-		if !kv.checkIsOk(shard) {
-			reply.Err = ErrWrongGroup
-			return
-		}
-		if op.Op == "Get" {
-			reply.Value = kv.shardData.Get(shard, op.Key)
-		} else if op.Op == "Put" {
+	shard := key2shard(op.Key)
+	if !kv.checkIsOk(shard) {
+		reply.Err = ErrWrongGroup
+		return
+	}
+	if op.Op == "Get" {
+		reply.Value = kv.shardData.Get(shard, op.Key)
+	} else if !kv.requestIsDone(op) {
+		if op.Op == "Put" {
 			kv.shardData.Put(shard, op.Key, op.Value)
 		} else if op.Op == "Append" {
 			kv.shardData.Append(shard, op.Key, op.Value)
 		}
-		kv.requestValid[op.ClientId][op.Seq] = *reply
-
-		for key, _ := range kv.requestValid[op.ClientId] {
-			if key < op.Seq {
-				delete(kv.requestValid[op.ClientId], key)
-			}
-		}
+		kv.updateRequestValid(op)
 	}
+
 }
 
 func (kv *ShardKV) applier() {
@@ -376,21 +379,14 @@ func (kv *ShardKV) applier() {
 			if !ok {
 				panic("Not a op command")
 			}
-			reply := StartCommandReply{Err: OK}
+			reply := StartCommandReply{Err: OK, RequestValid: make(map[int64]int64)}
 			if op.Type == "Outside" {
 				kv.applyOutSide(op, &reply)
 			} else {
 				kv.applyInternal(op, &reply)
 			}
 			kv.sendReplyToChan(m.CommandIndex, reply)
-			if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
-				w := new(bytes.Buffer)
-				e := labgob.NewEncoder(w)
-				e.Encode(m.CommandIndex)
-				e.Encode(kv.shardData)
-				e.Encode(kv.requestValid)
-				kv.rf.Snapshot(m.CommandIndex, w.Bytes())
-			}
+			kv.writeSnapshot(m.CommandIndex)
 			kv.mu.Unlock()
 		}
 	}
