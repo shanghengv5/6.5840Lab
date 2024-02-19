@@ -14,7 +14,7 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 			Op:           "Sync",
 			ShardData:    reply.Data,
 			RequestValid: reply.RequestValid,
-			OldConfig:    args.OldConfig,
+			Config:       args.Config,
 		})
 	}
 }
@@ -36,9 +36,9 @@ func writeRequestValid(src map[int64]int64, dst map[int64]int64) {
 
 func (kv *ShardKV) Pull(args *MigrateArgs, reply *MigrateReply) {
 	cmd := Op{
-		Op:        "Pull",
-		OldConfig: args.OldConfig,
-		ShardIds:  args.ShardIds,
+		Op:       "Pull",
+		Config:   args.Config,
+		ShardIds: args.ShardIds,
 	}
 
 	r := kv.StartCommand(cmd)

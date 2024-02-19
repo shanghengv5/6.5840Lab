@@ -35,8 +35,7 @@ type Op struct {
 	Op    string
 	Type  string
 	ClientHeader
-	OldConfig    shardctrler.Config
-	NextCfg      shardctrler.Config
+	Config       shardctrler.Config
 	RequestValid map[int64]int64
 	ShardData    ShardData
 	ShardIds     []int
@@ -56,9 +55,9 @@ type ClientHeader struct {
 }
 
 type MigrateArgs struct {
-	Op        string
-	OldConfig shardctrler.Config
-	ShardIds  []int
+	Op       string
+	Config   shardctrler.Config
+	ShardIds []int
 }
 
 type MigrateReply struct {

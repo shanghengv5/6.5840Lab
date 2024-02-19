@@ -244,8 +244,8 @@ func (kv *ShardKV) pullData() {
 		oldCfg := kv.OldConfig
 		shardData := kv.shardData
 		args := MigrateArgs{
-			Op:        "Pull",
-			OldConfig: oldCfg,
+			Op:     "Pull",
+			Config: kv.CurConfig,
 		}
 		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
 		kv.mu.Unlock()
@@ -285,8 +285,8 @@ func (kv *ShardKV) refreshConfig() {
 		}
 		if isUpdate && nextCfg.Num == curCfg.Num+1 {
 			kv.StartCommand(Op{
-				Op:      "Refresh",
-				NextCfg: nextCfg,
+				Op:     "Refresh",
+				Config: nextCfg,
 			})
 		}
 		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
@@ -314,7 +314,7 @@ func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 	// DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
 	if op.Op == "Pull" {
-		if op.OldConfig.Num == kv.OldConfig.Num {
+		if op.Config.Num == kv.CurConfig.Num {
 			reply.ShardData = ShardData{}
 			for _, sid := range op.ShardIds {
 				shardKv := kv.shardData[sid]
@@ -328,21 +328,21 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			reply.Err = ErrConfigChange
 		}
 	} else if op.Op == "Refresh" {
-		if op.NextCfg.Num == kv.CurConfig.Num+1 {
+		if op.Config.Num == kv.CurConfig.Num+1 {
 			// set ShardData state
 			kv.OldConfig = kv.CurConfig
-			kv.CurConfig = op.NextCfg
+			kv.CurConfig = op.Config
 			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
 		}
 	} else if op.Op == "Sync" {
-		if op.OldConfig.Num == kv.OldConfig.Num {
+		if op.Config.Num == kv.CurConfig.Num {
 			for shard, data := range op.ShardData {
 				kv.shardData.UpdateData(shard, data.Data)
 				kv.shardData.UpdateState(shard, Ok)
 			}
 			writeRequestValid(op.RequestValid, kv.requestValid)
 		} else {
-			DPrintf(dMigrate, "%s opOldConfigNum%d myOldConfigNum%d", op.Op, op.OldConfig.Num, kv.OldConfig.Num)
+			DPrintf(dMigrate, "%s opConfigNum%d myConfigNum%d", op.Op, op.Config.Num, kv.CurConfig.Num)
 		}
 	}
 }
