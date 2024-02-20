@@ -16,7 +16,7 @@ func (rf *Raft) commitIndexAboveLastApplied() {
 				CommandValid: true,
 				CommandIndex: applyIndex,
 			})
-			DPrintf(dApply, "S%d applyIndex%d Command%v CommitIndex%d", rf.me, applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
+			// DPrintf(dApply, "S%d applyIndex%d Command%v CommitIndex%d", rf.me, applyIndex, rf.getLogEntry(applyIndex).Command, rf.commitIndex)
 		}
 	}
 }
@@ -34,7 +34,7 @@ func (rf *Raft) SetLastIncludedIndex(index, term int, snapshot []byte) {
 	if rf.getLogIndex(index) < 0 {
 		return
 	}
-	DPrintf(dSnap, "S%d Index%d lastApplied%d commitIndex%d", rf.me, index, rf.lastApplied, rf.commitIndex)
+	// DPrintf(dSnap, "S%d Index%d lastApplied%d commitIndex%d", rf.me, index, rf.lastApplied, rf.commitIndex)
 	// SetNewSnapshot Head with lastIncludeTerm
 	newHead := []LogEntry{{Term: term}}
 	rest := index + 1

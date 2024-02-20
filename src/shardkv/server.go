@@ -117,7 +117,7 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 	case <-time.After(time.Duration(respTime) * time.Millisecond):
 		reply.Err = ErrTimeout
 	}
-	DPrintf(dServer, "(%d-%d) %s Key(%s) Value(%s) %s Index(%d) Seq(%d) isLeader(%v)", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq, isLeader)
+	// DPrintf(dServer, "(%d-%d) %s Key(%s) Value(%s) %s Index(%d) Seq(%d) isLeader(%v)", kv.gid, kv.me, cmd.Op, cmd.Key, reply.Value, reply.Err, index, cmd.Seq, isLeader)
 	return
 }
 
@@ -241,8 +241,6 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	kv.requestValid = requestValid
 	kv.mu.Unlock()
 }
-
-
 
 // update shard data when new config refresh
 func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {

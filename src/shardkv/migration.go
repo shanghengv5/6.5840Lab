@@ -6,7 +6,7 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	if ok := srv.Call("ShardKV.Pull", args, &reply); !ok || reply.Err != OK {
 		return
 	}
-	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s) (%s) data(%v) ", kv.gid, kv.me, server, args.Op, args.Op, reply.Data)
+	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s)  data(%v) ", kv.gid, kv.me, server, args.Op, reply.Data)
 	kv.StartCommand(Op{
 		Op:           "Sync",
 		ShardData:    reply.Data,

@@ -105,7 +105,7 @@ func (rf *Raft) broadcastAppendEntries() {
 	if rf.state != Leader {
 		return
 	}
-	DPrintf(dAppend, "S%d commitIndex%d matchIndex%v nextIndex%v Term%d ", rf.me, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm)
+	// DPrintf(dAppend, "S%d commitIndex%d matchIndex%v nextIndex%v Term%d ", rf.me, rf.commitIndex, rf.matchIndex, rf.nextIndex, rf.currentTerm)
 	for server := range rf.peers {
 		if server == rf.me {
 			continue
@@ -125,10 +125,10 @@ func (rf *Raft) appendEntryRpc(server int, args *AppendEntriesArg) {
 	reply := AppendEntriesReply{}
 	ok := rf.peers[server].Call("Raft.AppendEntries", args, &reply)
 	if !ok {
-		DPrintf(dAppend, "S%d => S%d Rpc not ok", rf.me, server)
+		// DPrintf(dAppend, "S%d => S%d Rpc not ok", rf.me, server)
 		return
 	}
-	DPrintf(dAppend, "S%d => S%d Rpc ok", rf.me, server)
+	// DPrintf(dAppend, "S%d => S%d Rpc ok", rf.me, server)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
