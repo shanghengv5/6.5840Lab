@@ -61,7 +61,7 @@ type MigrateArgs struct {
 }
 
 type MigrateReply struct {
-	Data         ShardData
+	Data         ShardData	
 	Err          Err
 	RequestValid map[int64]int64
 }

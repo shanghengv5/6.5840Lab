@@ -10,16 +10,17 @@ type ShardData map[int]Kv
 type State int
 
 const (
-	Ok    State = iota
-	Share       // Need share to other
-	Pull        // Pull new shard
+	Running  State = iota
+	Share          // Need share to other
+	Pull           // Pull new shard
+	PullDone       // PullDone : wait to delete old shard data and update state
 	Drop
 )
 
 func (s State) String() string {
 	switch s {
-	case Ok:
-		return "Ok"
+	case Running:
+		return "Running"
 	case Share:
 		return "Share"
 	case Pull:
@@ -36,13 +37,17 @@ type Kv struct {
 	State State
 }
 
+func NewKv() Kv {
+	return Kv{
+		Data:  map[string]string{},
+		State: Running,
+	}
+}
+
 func NewShardData() ShardData {
 	shardData := ShardData{}
 	for s := 0; s < shardctrler.NShards; s++ {
-		shardData[s] = Kv{
-			Data:  map[string]string{},
-			State: Ok,
-		}
+		shardData[s] = NewKv()
 	}
 	return shardData
 }

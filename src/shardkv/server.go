@@ -48,8 +48,8 @@ func (kv *ShardKV) requestIsDone(cmd Op) bool {
 	return kv.requestValid[cmd.ClientId] >= cmd.Seq
 }
 
-func (kv *ShardKV) checkIsOk(shard int) bool {
-	if data, ok := kv.shardData[shard]; ok && data.State == Ok && kv.CurConfig.Shards[shard] == kv.gid {
+func (kv *ShardKV) checkIsRunning(shard int) bool {
+	if data, ok := kv.shardData[shard]; ok && data.State == Running && kv.CurConfig.Shards[shard] == kv.gid {
 		return true
 	}
 	return false
@@ -65,7 +65,7 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 	}
 
 	kv.mu.Lock()
-	if !kv.checkIsOk(key2shard(cmd.Key)) {
+	if !kv.checkIsRunning(key2shard(cmd.Key)) {
 		reply.Err = ErrWrongGroup
 		kv.mu.Unlock()
 		return
@@ -86,7 +86,7 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		Type:         "Outside",
 	}
 	kv.mu.Lock()
-	if !kv.checkIsOk(key2shard(cmd.Key)) {
+	if !kv.checkIsRunning(key2shard(cmd.Key)) {
 		reply.Err = ErrWrongGroup
 		kv.mu.Unlock()
 		return
@@ -182,6 +182,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	go kv.applier()
 	go kv.refreshConfig()
 	go kv.pullData()
+	go kv.updatePullDone()
 	return kv
 }
 

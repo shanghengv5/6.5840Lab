@@ -2,6 +2,36 @@ package shardkv
 
 import "time"
 
+func (kv *ShardKV) updatePullDone() {
+	for !kv.killed() {
+		if _, isLeader := kv.rf.GetState(); !isLeader {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		kv.mu.Lock()
+		oldCfg := kv.OldConfig
+		shardData := kv.shardData
+		args := MigrateArgs{
+			Op:     "PullDone",
+			Config: kv.CurConfig,
+		}
+		gid2ShardIds := shardData.getGid2ShardIds(PullDone, oldCfg)
+
+		if len(gid2ShardIds) > 0 {
+			for gid, shardIds := range gid2ShardIds {
+				servers := oldCfg.Groups[gid]
+				args.ShardIds = shardIds
+				for _, server := range servers {
+					go kv.migrateRpc(server, &args)
+				}
+				DPrintf(dRpc, "%v PullDone servers%v configNum%d (%v)", kv.gid, servers, args.Config.Num, gid2ShardIds)
+			}
+		}
+		kv.mu.Unlock()
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (kv *ShardKV) pullData() {
 	for !kv.killed() {
 		if _, isLeader := kv.rf.GetState(); !isLeader {
@@ -24,7 +54,7 @@ func (kv *ShardKV) pullData() {
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
-				DPrintf(dRpc, "%v PullData servers%v configNum%d (%v)", kv.gid, servers, oldCfg.Num, gid2ShardIds)
+				DPrintf(dRpc, "(%d-%d) Pull servers%v configNum%d (%v)", kv.gid, kv.me, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
 		kv.mu.Unlock()
@@ -45,7 +75,7 @@ func (kv *ShardKV) refreshConfig() {
 		kv.mu.Unlock()
 		isUpdate := true
 		for _, kv := range shardData {
-			if kv.State != Ok {
+			if kv.State != Running {
 				isUpdate = false
 				break
 			}
@@ -102,12 +132,18 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 		if op.Config.Num == kv.CurConfig.Num {
 			for shard, data := range op.ShardData {
 				kv.shardData.UpdateData(shard, data.Data)
-				kv.shardData.UpdateState(shard, Ok)
+				kv.shardData.UpdateState(shard, PullDone)
 			}
 			writeRequestValid(op.RequestValid, kv.requestValid)
 		} else {
 			reply.Err = ErrConfigChange
 			DPrintf(dSync, "S(%d-%d) ConfigNum(%d)(%d) data%v", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, op.ShardData)
+		}
+	} else if op.Op == "PullDone" {
+		if op.Config.Num == kv.CurConfig.Num {
+			for _, shard := range op.ShardIds {
+				kv.shardData.UpdateState(shard, Running)
+			}
 		}
 	}
 }
@@ -116,7 +152,7 @@ func (kv *ShardKV) applyOutSide(op Op, reply *StartCommandReply) {
 	// init seq map
 	// Repeat request don't calculate again
 	shard := key2shard(op.Key)
-	if !kv.checkIsOk(shard) {
+	if !kv.checkIsRunning(shard) {
 		reply.Err = ErrWrongGroup
 		return
 	}
