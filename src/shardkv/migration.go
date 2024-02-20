@@ -3,20 +3,17 @@ package shardkv
 func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	srv := kv.make_end(server)
 	var reply MigrateReply
-	ok := srv.Call("ShardKV.Pull", args, &reply)
-	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s) data(%v) ok(%v) Err(%s) ", kv.gid, kv.me, server, args.Op, reply.Data, ok, reply.Err)
-	if !ok || reply.Err != OK {
+	if ok := srv.Call("ShardKV.Pull", args, &reply); !ok || reply.Err != OK {
 		return
 	}
+	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s) (%s) data(%v) ", kv.gid, kv.me, server, args.Op, args.Op, reply.Data)
+	kv.StartCommand(Op{
+		Op:           "Sync",
+		ShardData:    reply.Data,
+		RequestValid: reply.RequestValid,
+		Config:       args.Config,
+	})
 
-	if args.Op == "Pull" {
-		kv.StartCommand(Op{
-			Op:           "Sync",
-			ShardData:    reply.Data,
-			RequestValid: reply.RequestValid,
-			Config:       args.Config,
-		})
-	}
 }
 
 func (kv *ShardKV) updateRequestValid(op Op) {
@@ -35,14 +32,26 @@ func writeRequestValid(src map[int64]int64, dst map[int64]int64) {
 }
 
 func (kv *ShardKV) Pull(args *MigrateArgs, reply *MigrateReply) {
-	cmd := Op{
-		Op:       "Pull",
-		Config:   args.Config,
-		ShardIds: args.ShardIds,
+	if _, isLeader := kv.rf.GetState(); !isLeader {
+		reply.Err = ErrWrongLeader
+		return
 	}
-
-	r := kv.StartCommand(cmd)
-	reply.Data = r.ShardData
-	reply.Err = r.Err
-	reply.RequestValid = r.RequestValid
+	kv.mu.Lock()
+	defer kv.mu.Unlock()
+	reply.Err = OK
+	reply.RequestValid = make(map[int64]int64)
+	if args.Config.Num == kv.CurConfig.Num {
+		reply.Data = ShardData{}
+		for _, sid := range args.ShardIds {
+			shardKv := kv.shardData[sid]
+			reply.Data.UpdateData(sid, shardKv.Data)
+			if shardKv.State == Share {
+				kv.shardData.UpdateState(sid, Ok)
+			}
+			writeRequestValid(kv.requestValid, reply.RequestValid)
+		}
+	} else {
+		reply.Err = ErrConfigChange
+		DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d)", kv.gid, kv.me, args.Config.Num, kv.CurConfig.Num)
+	}
 }

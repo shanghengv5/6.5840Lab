@@ -3,6 +3,7 @@ package shardkv
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"6.5840/labgob"
@@ -30,11 +31,17 @@ type ShardKV struct {
 	mck          *shardctrler.Clerk
 	requestValid map[int64]int64
 	shardData    ShardData
+	dead         int32
 
 	CurConfig shardctrler.Config
 	OldConfig shardctrler.Config // need shards to point pull servers data
 
 	index2ReplyChan map[int]chan StartCommandReply
+}
+
+func (kv *ShardKV) killed() bool {
+	z := atomic.LoadInt32(&kv.dead)
+	return z == 1
 }
 
 func (kv *ShardKV) requestIsDone(cmd Op) bool {
@@ -121,6 +128,7 @@ func (kv *ShardKV) StartCommand(cmd Op) (reply StartCommandReply) {
 func (kv *ShardKV) Kill() {
 	kv.rf.Kill()
 	// Your code here, if desired.
+	atomic.StoreInt32(&kv.dead, 1)
 }
 
 // servers[] contains the ports of the servers in this group.
@@ -234,66 +242,9 @@ func (kv *ShardKV) readSnapshot(data []byte) {
 	kv.mu.Unlock()
 }
 
-func (kv *ShardKV) pullData() {
-	for {
-		if _, isLeader := kv.rf.GetState(); !isLeader {
-			time.Sleep(100 * time.Millisecond)
-			continue
-		}
-		kv.mu.Lock()
-		oldCfg := kv.OldConfig
-		shardData := kv.shardData
-		args := MigrateArgs{
-			Op:     "Pull",
-			Config: kv.CurConfig,
-		}
-		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
-		kv.mu.Unlock()
-		if len(gid2ShardIds) > 0 {
-			for gid, shardIds := range gid2ShardIds {
-				servers := oldCfg.Groups[gid]
-				args.ShardIds = shardIds
-				for _, server := range servers {
-					go kv.migrateRpc(server, &args)
-				}
-				DPrintf(dMigrate, "%v PullData servers%v configNum%d (%v)", kv.gid, servers, oldCfg.Num, gid2ShardIds)
-			}
 
-		}
 
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
-func (kv *ShardKV) refreshConfig() {
-	for {
-		if _, isLeader := kv.rf.GetState(); !isLeader {
-			time.Sleep(100 * time.Millisecond)
-			continue
-		}
-		kv.mu.Lock()
-		curCfg := kv.CurConfig
-		nextCfg := kv.mck.Query(kv.CurConfig.Num + 1)
-		shardData := kv.shardData
-		kv.mu.Unlock()
-		isUpdate := true
-		for _, kv := range shardData {
-			if kv.State != Ok {
-				isUpdate = false
-				break
-			}
-		}
-		if isUpdate && nextCfg.Num == curCfg.Num+1 {
-			kv.StartCommand(Op{
-				Op:     "Refresh",
-				Config: nextCfg,
-			})
-		}
-		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
+// update shard data when new config refresh
 func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 	for s := 0; s < shardctrler.NShards; s++ {
 		// Pull
@@ -307,87 +258,6 @@ func (kv *ShardKV) updateShardDataState(oldCfg, newCfg shardctrler.Config) {
 			newCfg.Shards[s] != kv.gid && // new cfg doesnt need this group
 			oldCfg.Shards[s] == kv.gid { // old cfg  exists
 			kv.shardData.UpdateState(s, Share)
-		}
-	}
-}
-
-func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
-	// DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
-	if op.Op == "Pull" {
-		if op.Config.Num == kv.CurConfig.Num {
-			reply.ShardData = ShardData{}
-			for _, sid := range op.ShardIds {
-				shardKv := kv.shardData[sid]
-				reply.ShardData.UpdateData(sid, shardKv.Data)
-				if shardKv.State == Share {
-					kv.shardData.UpdateState(sid, Ok)
-				}
-				writeRequestValid(kv.requestValid, reply.RequestValid)
-			}
-		} else {
-			reply.Err = ErrConfigChange
-		}
-	} else if op.Op == "Refresh" {
-		if op.Config.Num == kv.CurConfig.Num+1 {
-			// set ShardData state
-			kv.OldConfig = kv.CurConfig
-			kv.CurConfig = op.Config
-			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
-		}
-	} else if op.Op == "Sync" {
-		if op.Config.Num == kv.CurConfig.Num {
-			for shard, data := range op.ShardData {
-				kv.shardData.UpdateData(shard, data.Data)
-				kv.shardData.UpdateState(shard, Ok)
-			}
-			writeRequestValid(op.RequestValid, kv.requestValid)
-		} else {
-			DPrintf(dMigrate, "%s opConfigNum%d myConfigNum%d", op.Op, op.Config.Num, kv.CurConfig.Num)
-		}
-	}
-}
-
-func (kv *ShardKV) applyOutSide(op Op, reply *StartCommandReply) {
-	// init seq map
-	// Repeat request don't calculate again
-	shard := key2shard(op.Key)
-	if !kv.checkIsOk(shard) {
-		reply.Err = ErrWrongGroup
-		return
-	}
-	if op.Op == "Get" {
-		reply.Value = kv.shardData.Get(shard, op.Key)
-	} else if !kv.requestIsDone(op) {
-		if op.Op == "Put" {
-			kv.shardData.Put(shard, op.Key, op.Value)
-		} else if op.Op == "Append" {
-			kv.shardData.Append(shard, op.Key, op.Value)
-		}
-		kv.updateRequestValid(op)
-	}
-
-}
-
-func (kv *ShardKV) applier() {
-	for m := range kv.applyCh {
-		// DPrintf(dApply, "S(%d) CommandIndex(%d) command(%v)", kv.me, m.CommandIndex, m.Command)
-		if m.SnapshotValid {
-			kv.readSnapshot(m.Snapshot)
-		} else if m.CommandValid {
-			kv.mu.Lock()
-			op, ok := m.Command.(Op)
-			if !ok {
-				panic("Not a op command")
-			}
-			reply := StartCommandReply{Err: OK, RequestValid: make(map[int64]int64)}
-			if op.Type == "Outside" {
-				kv.applyOutSide(op, &reply)
-			} else {
-				kv.applyInternal(op, &reply)
-			}
-			kv.sendReplyToChan(m.CommandIndex, reply)
-			kv.writeSnapshot(m.CommandIndex)
-			kv.mu.Unlock()
 		}
 	}
 }

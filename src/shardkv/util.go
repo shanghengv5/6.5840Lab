@@ -18,9 +18,12 @@ const (
 	dRequest logTopic = "REQ"
 	dServer  logTopic = "KVSERVER"
 	dMigrate logTopic = "Migrate"
+	dRpc     logTopic = "RPC"
 	dApply   logTopic = "APPLIER"
 	dRespond logTopic = "RESP"
 	dTest    logTopic = "TEST"
+	dPull    logTopic = "PULL"
+	dSync    logTopic = "SYNC"
 )
 
 var debugStart time.Time
