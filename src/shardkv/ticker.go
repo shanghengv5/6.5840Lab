@@ -131,18 +131,20 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			writeRequestValid(kv.requestValid, reply.RequestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num)
+			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d) ", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num)
 		}
 	} else if op.Op == "FinishPull" {
 		if op.Config.Num == kv.CurConfig.Num {
 			for shard, data := range op.ShardData {
-				kv.shardData.UpdateData(shard, data.Data)
-				kv.shardData.UpdateState(shard, PullDone)
+				if kv.shardData[shard].State == Pull {
+					kv.shardData.UpdateData(shard, data.Data)
+					kv.shardData.UpdateState(shard, PullDone)
+				}
 			}
 			writeRequestValid(op.RequestValid, kv.requestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dSync, "S(%d-%d) ConfigNum(%d)(%d) data%v", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, op.ShardData)
+			DPrintf(dFinishPull, "S(%d-%d) ConfigNum(%d)(%d) data%v", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, op.ShardData)
 		}
 	} else if op.Op == "PullDone" {
 		if op.Config.Num == kv.CurConfig.Num {

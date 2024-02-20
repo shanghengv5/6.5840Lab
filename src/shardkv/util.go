@@ -14,16 +14,18 @@ const Debug = 0b1000
 type logTopic string
 
 const (
-	dClient  logTopic = "CLNT"
-	dRequest logTopic = "REQ"
-	dServer  logTopic = "KVSERVER"
-	dMigrate logTopic = "Migrate"
-	dRpc     logTopic = "RPC"
-	dApply   logTopic = "APPLIER"
-	dRespond logTopic = "RESP"
-	dTest    logTopic = "TEST"
-	dPull    logTopic = "PULL"
-	dSync    logTopic = "SYNC"
+	dClient         logTopic = "CLNT"
+	dRequest        logTopic = "REQ"
+	dServer         logTopic = "KVSERVER"
+	dMigrate        logTopic = "Migrate"
+	dRpc            logTopic = "RPC"
+	dApply          logTopic = "APPLIER"
+	dRespond        logTopic = "RESP"
+	dTest           logTopic = "TEST"
+	dPull           logTopic = "PULL"
+	dPullDone       logTopic = "PULL_DONE"
+	dFinishPull     logTopic = "FINISH_PULL"
+	dFinishPullDone logTopic = "FINISH_PULL_DONE"
 )
 
 var debugStart time.Time
