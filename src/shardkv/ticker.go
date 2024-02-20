@@ -131,7 +131,7 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			writeRequestValid(kv.requestValid, reply.RequestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d) ", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num)
+			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "FinishPull" {
 		if op.Config.Num == kv.CurConfig.Num {
@@ -144,9 +144,10 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			writeRequestValid(op.RequestValid, kv.requestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dFinishPull, "S(%d-%d) ConfigNum(%d)(%d) data%v", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, op.ShardData)
+			DPrintf(dFinishPull, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "PullDone" {
+		// PullDone make share delete
 		if op.Config.Num == kv.CurConfig.Num {
 			for _, sid := range op.ShardIds {
 				shardKv := kv.shardData[sid]
@@ -156,9 +157,12 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			}
 		}
 	} else if op.Op == "FinishPullDone" {
+		// Make self PullDone data can run
 		if op.Config.Num == kv.CurConfig.Num {
 			for _, shard := range op.ShardIds {
-				kv.shardData.UpdateState(shard, Running)
+				if kv.shardData[shard].State == PullDone {
+					kv.shardData.UpdateState(shard, Running)
+				}
 			}
 		}
 	} else if op.Op == "Refresh" {

@@ -59,5 +59,4 @@ func (kv *ShardKV) PullDone(args *MigrateArgs, reply *MigrateReply) {
 	}
 	r := kv.StartCommand(op)
 	reply.Err = r.Err
-
 }
