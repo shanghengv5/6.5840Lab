@@ -118,17 +118,22 @@ func (kv *ShardKV) applier() {
 }
 
 func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
-	// DPrintf(dApply, "Internal (%d-%d)%s) opConfigNum%d configNum%d", kv.gid, kv.me, op.Op, op.OldConfig.Num, kv.OldConfig.Num)
 	if op.Op == "Pull" {
-
-	} else if op.Op == "Refresh" {
-		if op.Config.Num == kv.CurConfig.Num+1 {
-			// set ShardData state
-			kv.OldConfig = kv.CurConfig
-			kv.CurConfig = op.Config
-			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
+		if op.Config.Num == kv.CurConfig.Num {
+			reply.RequestValid = make(map[int64]int64)
+			reply.ShardData = ShardData{}
+			for _, sid := range op.ShardIds {
+				shardKv := kv.shardData[sid]
+				if shardKv.State == Share {
+					reply.ShardData.UpdateData(sid, shardKv.Data)
+				}
+			}
+			writeRequestValid(kv.requestValid, reply.RequestValid)
+		} else {
+			reply.Err = ErrConfigChange
+			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num)
 		}
-	} else if op.Op == "Sync" {
+	} else if op.Op == "FinishPull" {
 		if op.Config.Num == kv.CurConfig.Num {
 			for shard, data := range op.ShardData {
 				kv.shardData.UpdateData(shard, data.Data)
@@ -141,9 +146,25 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 		}
 	} else if op.Op == "PullDone" {
 		if op.Config.Num == kv.CurConfig.Num {
+			for _, sid := range op.ShardIds {
+				shardKv := kv.shardData[sid]
+				if shardKv.State == Share {
+					kv.shardData[sid] = NewKv()
+				}
+			}
+		}
+	} else if op.Op == "FinishPullDone" {
+		if op.Config.Num == kv.CurConfig.Num {
 			for _, shard := range op.ShardIds {
 				kv.shardData.UpdateState(shard, Running)
 			}
+		}
+	} else if op.Op == "Refresh" {
+		if op.Config.Num == kv.CurConfig.Num+1 {
+			// set ShardData state
+			kv.OldConfig = kv.CurConfig
+			kv.CurConfig = op.Config
+			kv.updateShardDataState(kv.OldConfig, kv.CurConfig)
 		}
 	}
 }
