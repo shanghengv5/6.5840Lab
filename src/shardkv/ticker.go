@@ -24,7 +24,7 @@ func (kv *ShardKV) updatePullDone() {
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
-				DPrintf(dRpc, "%v PullDone servers%v configNum%d (%v)", kv.gid, servers, args.Config.Num, gid2ShardIds)
+				// DPrintf(dRpc, "%v PullDone servers%v configNum%d (%v)", kv.gid, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
 		kv.mu.Unlock()
@@ -54,7 +54,7 @@ func (kv *ShardKV) pullData() {
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
-				DPrintf(dRpc, "(%d-%d) Pull servers%v configNum%d (%v)", kv.gid, kv.me, servers, args.Config.Num, gid2ShardIds)
+				// DPrintf(dRpc, "(%d-%d) Pull servers%v configNum%d (%v)", kv.gid, kv.me, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
 		kv.mu.Unlock()
@@ -158,11 +158,9 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 		}
 	} else if op.Op == "FinishPullDone" {
 		// Make self PullDone data can run
-		if op.Config.Num == kv.CurConfig.Num {
-			for _, shard := range op.ShardIds {
-				if kv.shardData[shard].State == PullDone {
-					kv.shardData.UpdateState(shard, Running)
-				}
+		for _, shard := range op.ShardIds {
+			if kv.shardData[shard].State == PullDone {
+				kv.shardData.UpdateState(shard, Running)
 			}
 		}
 	} else if op.Op == "Refresh" {

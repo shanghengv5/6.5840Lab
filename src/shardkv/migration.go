@@ -6,7 +6,7 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 	if ok := srv.Call("ShardKV."+args.Op, args, &reply); !ok || reply.Err != OK {
 		return
 	}
-	DPrintf(dMigrate, "S(%d-%d) => (%s) (%s)  data(%v) ", kv.gid, kv.me, server, args.Op, reply.Data)
+	DPrintf(dMigrate, "S(%d-%d)=>(%s) (%s) data(%v) shardIds(%v) ConfigNum(%d)", kv.gid, kv.me, server, args.Op, reply.Data, args.ShardIds, args.Config.Num)
 	if args.Op == "Pull" {
 		kv.StartCommand(Op{
 			Op:           "FinishPull",
@@ -18,7 +18,6 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 		kv.StartCommand(Op{
 			Op:       "FinishPullDone",
 			ShardIds: args.ShardIds,
-			Config:   args.Config,
 		})
 	}
 
