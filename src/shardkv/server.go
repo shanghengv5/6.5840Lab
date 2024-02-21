@@ -33,6 +33,8 @@ type ShardKV struct {
 	shardData    ShardData
 	dead         int32
 
+	persister *raft.Persister
+
 	CurConfig shardctrler.Config
 	OldConfig shardctrler.Config // need shards to point pull servers data
 
@@ -175,10 +177,11 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	kv.requestValid = make(map[int64]int64)
 	// Use something like this to talk to the shardctrler:
 	kv.mck = shardctrler.MakeClerk(kv.ctrlers)
+	kv.persister = persister
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-	kv.readSnapshot(kv.rf.Persister.ReadSnapshot())
+	kv.readSnapshot(kv.persister.ReadSnapshot())
 	go kv.applier()
 	go kv.refreshConfig()
 	go kv.pullData()
@@ -203,7 +206,7 @@ func (kv *ShardKV) sendReplyToChan(index int, reply StartCommandReply) {
 }
 
 func (kv *ShardKV) writeSnapshot(index int) {
-	if kv.rf.Persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
+	if kv.persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
 		w := new(bytes.Buffer)
 		e := labgob.NewEncoder(w)
 		// e.Encode(m.CommandIndex)
