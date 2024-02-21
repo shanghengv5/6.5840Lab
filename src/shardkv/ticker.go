@@ -16,6 +16,7 @@ func (kv *ShardKV) updatePullDone() {
 			Config: kv.CurConfig,
 		}
 		gid2ShardIds := shardData.getGid2ShardIds(PullDone, oldCfg)
+		kv.mu.Unlock()
 
 		if len(gid2ShardIds) > 0 {
 			for gid, shardIds := range gid2ShardIds {
@@ -24,11 +25,10 @@ func (kv *ShardKV) updatePullDone() {
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
-				// DPrintf(dRpc, "%v PullDone servers%v configNum%d (%v)", kv.gid, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
-		kv.mu.Unlock()
-		time.Sleep(100 * time.Millisecond)
+
+		time.Sleep(110 * time.Millisecond)
 	}
 }
 
@@ -46,6 +46,7 @@ func (kv *ShardKV) pullData() {
 			Config: kv.CurConfig,
 		}
 		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
+		kv.mu.Unlock()
 
 		if len(gid2ShardIds) > 0 {
 			for gid, shardIds := range gid2ShardIds {
@@ -57,7 +58,7 @@ func (kv *ShardKV) pullData() {
 				// DPrintf(dRpc, "(%d-%d) Pull servers%v configNum%d (%v)", kv.gid, kv.me, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
-		kv.mu.Unlock()
+
 		time.Sleep(100 * time.Millisecond)
 	}
 }
@@ -72,7 +73,7 @@ func (kv *ShardKV) refreshConfig() {
 		curCfg := kv.CurConfig
 		nextCfg := kv.mck.Query(kv.CurConfig.Num + 1)
 		shardData := kv.shardData
-		kv.mu.Unlock()
+
 		isUpdate := true
 		for _, kv := range shardData {
 			if kv.State != Running {
@@ -80,6 +81,7 @@ func (kv *ShardKV) refreshConfig() {
 				break
 			}
 		}
+		kv.mu.Unlock()
 		if isUpdate && nextCfg.Num == curCfg.Num+1 {
 			kv.StartCommand(Op{
 				Op:     "Refresh",
@@ -87,7 +89,7 @@ func (kv *ShardKV) refreshConfig() {
 			})
 		}
 		// DPrintf(dServer, "(%d)REFERSH CurConfigNum%d", kv.gid, kv.CurConfig.Num)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -150,13 +152,12 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 		// PullDone make share delete
 		if op.Config.Num == kv.CurConfig.Num {
 			for _, sid := range op.ShardIds {
-				shardKv := kv.shardData[sid]
-				if shardKv.State == Share {
-					kv.shardData[sid] = NewKv()
+				if kv.shardData[sid].State == Share {
+					kv.shardData.UpdateData(sid, make(map[string]string))
+					kv.shardData.UpdateState(sid, Running)
 				}
 			}
 		} else {
-			reply.Err = ErrConfigChange
 			DPrintf(dPullDone, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "FinishPullDone" {

@@ -18,6 +18,7 @@ func (kv *ShardKV) migrateRpc(server string, args *MigrateArgs) {
 		kv.StartCommand(Op{
 			Op:       "FinishPullDone",
 			ShardIds: args.ShardIds,
+			Config:   args.Config,
 		})
 	}
 
