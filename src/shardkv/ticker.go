@@ -11,17 +11,19 @@ func (kv *ShardKV) updatePullDone() {
 		kv.mu.Lock()
 		oldCfg := kv.OldConfig
 		shardData := kv.shardData
-		args := MigrateArgs{
-			Op:     "PullDone",
-			Config: kv.CurConfig,
-		}
+		curCfg := kv.CurConfig
 		gid2ShardIds := shardData.getGid2ShardIds(PullDone, oldCfg)
 		kv.mu.Unlock()
 
 		if len(gid2ShardIds) > 0 {
 			for gid, shardIds := range gid2ShardIds {
 				servers := oldCfg.Groups[gid]
-				args.ShardIds = shardIds
+				args := MigrateArgs{
+					Op:       "PullDone",
+					Config:   curCfg,
+					ShardIds: shardIds,
+				}
+
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
@@ -41,21 +43,22 @@ func (kv *ShardKV) pullData() {
 		kv.mu.Lock()
 		oldCfg := kv.OldConfig
 		shardData := kv.shardData
-		args := MigrateArgs{
-			Op:     "Pull",
-			Config: kv.CurConfig,
-		}
+		curCfg := kv.CurConfig
 		gid2ShardIds := shardData.getGid2ShardIds(Pull, oldCfg)
 		kv.mu.Unlock()
 
 		if len(gid2ShardIds) > 0 {
 			for gid, shardIds := range gid2ShardIds {
 				servers := oldCfg.Groups[gid]
-				args.ShardIds = shardIds
+				args := MigrateArgs{
+					Op:       "Pull",
+					Config:   curCfg,
+					ShardIds: shardIds,
+				}
+
 				for _, server := range servers {
 					go kv.migrateRpc(server, &args)
 				}
-				// DPrintf(dRpc, "(%d-%d) Pull servers%v configNum%d (%v)", kv.gid, kv.me, servers, args.Config.Num, gid2ShardIds)
 			}
 		}
 
@@ -73,7 +76,6 @@ func (kv *ShardKV) refreshConfig() {
 		curCfg := kv.CurConfig
 		nextCfg := kv.mck.Query(kv.CurConfig.Num + 1)
 		shardData := kv.shardData
-
 		isUpdate := true
 		for _, kv := range shardData {
 			if kv.State != Running {
@@ -112,7 +114,10 @@ func (kv *ShardKV) applier() {
 					kv.applyInternal(op, &reply)
 				}
 				kv.sendReplyToChan(m.CommandIndex, reply)
-				kv.writeSnapshot(m.CommandIndex)
+				if kv.maxraftstate != -1 && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+					kv.writeSnapshot(m.CommandIndex)
+				}
+
 				kv.mu.Unlock()
 			}
 		}
@@ -125,17 +130,17 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			reply.RequestValid = make(map[int64]int64)
 			reply.ShardData = ShardData{}
 			for _, sid := range op.ShardIds {
-				shardKv := kv.shardData[sid]
-				if shardKv.State == Share {
-					reply.ShardData.UpdateData(sid, shardKv.Data)
+				if kv.shardData[sid].State == Share {
+					reply.ShardData.UpdateData(sid, kv.shardData[sid].Data)
 				}
 			}
 			writeRequestValid(kv.requestValid, reply.RequestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dPull, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
+			DPrintf(dPull, "S(%d-%d) ArgsNum(%d) CurNum(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "FinishPull" {
+		// Get Pull Data and Update self data to pull done
 		if op.Config.Num == kv.CurConfig.Num {
 			for shard, data := range op.ShardData {
 				if kv.shardData[shard].State == Pull {
@@ -146,15 +151,14 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 			writeRequestValid(op.RequestValid, kv.requestValid)
 		} else {
 			reply.Err = ErrConfigChange
-			DPrintf(dFinishPull, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
+			DPrintf(dFinishPull, "S(%d-%d) ArgsNum(%d) CurNum(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "PullDone" {
 		// PullDone make share delete
 		if op.Config.Num == kv.CurConfig.Num {
 			for _, sid := range op.ShardIds {
 				if kv.shardData[sid].State == Share {
-					kv.shardData.UpdateData(sid, make(map[string]string))
-					kv.shardData.UpdateState(sid, Running)
+					kv.shardData[sid] = NewKv()
 				}
 			}
 		} else {
@@ -164,9 +168,7 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 		// Make self PullDone data can run
 		if op.Config.Num == kv.CurConfig.Num {
 			for _, shard := range op.ShardIds {
-				if kv.shardData[shard].State == PullDone {
-					kv.shardData.UpdateState(shard, Running)
-				}
+				kv.shardData.UpdateState(shard, Running)
 			}
 		}
 

@@ -33,8 +33,6 @@ type ShardKV struct {
 	shardData    ShardData
 	dead         int32
 
-	persister *raft.Persister
-
 	CurConfig shardctrler.Config
 	OldConfig shardctrler.Config // need shards to point pull servers data
 
@@ -51,7 +49,7 @@ func (kv *ShardKV) requestIsDone(cmd Op) bool {
 }
 
 func (kv *ShardKV) checkIsRunning(shard int) bool {
-	if data, ok := kv.shardData[shard]; ok && data.State == Running && kv.CurConfig.Shards[shard] == kv.gid {
+	if data, ok := kv.shardData[shard]; ok && (data.State == Running || data.State == PullDone) && kv.CurConfig.Shards[shard] == kv.gid {
 		return true
 	}
 	return false
@@ -177,11 +175,10 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	kv.requestValid = make(map[int64]int64)
 	// Use something like this to talk to the shardctrler:
 	kv.mck = shardctrler.MakeClerk(kv.ctrlers)
-	kv.persister = persister
 
 	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh)
-	kv.readSnapshot(kv.persister.ReadSnapshot())
+	kv.readSnapshot(persister.ReadSnapshot())
 	go kv.applier()
 	go kv.refreshConfig()
 	go kv.pullData()
@@ -206,16 +203,14 @@ func (kv *ShardKV) sendReplyToChan(index int, reply StartCommandReply) {
 }
 
 func (kv *ShardKV) writeSnapshot(index int) {
-	if kv.persister.RaftStateSize() > kv.maxraftstate && kv.maxraftstate != -1 {
-		w := new(bytes.Buffer)
-		e := labgob.NewEncoder(w)
-		// e.Encode(m.CommandIndex)
-		e.Encode(kv.CurConfig)
-		e.Encode(kv.OldConfig)
-		e.Encode(kv.shardData)
-		e.Encode(kv.requestValid)
-		kv.rf.Snapshot(index, w.Bytes())
-	}
+	w := new(bytes.Buffer)
+	e := labgob.NewEncoder(w)
+	// e.Encode(m.CommandIndex)
+	e.Encode(kv.CurConfig)
+	e.Encode(kv.OldConfig)
+	e.Encode(kv.shardData)
+	e.Encode(kv.requestValid)
+	kv.rf.Snapshot(index, w.Bytes())
 }
 
 func (kv *ShardKV) readSnapshot(data []byte) {
