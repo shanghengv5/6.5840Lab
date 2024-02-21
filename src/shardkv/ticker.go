@@ -155,14 +155,20 @@ func (kv *ShardKV) applyInternal(op Op, reply *StartCommandReply) {
 					kv.shardData[sid] = NewKv()
 				}
 			}
+		} else {
+			reply.Err = ErrConfigChange
+			DPrintf(dPullDone, "S(%d-%d) ConfigNum(%d)(%d) data(%v)", kv.gid, kv.me, op.Config.Num, kv.CurConfig.Num, kv.shardData)
 		}
 	} else if op.Op == "FinishPullDone" {
 		// Make self PullDone data can run
-		for _, shard := range op.ShardIds {
-			if kv.shardData[shard].State == PullDone {
-				kv.shardData.UpdateState(shard, Running)
+		if op.Config.Num == kv.CurConfig.Num {
+			for _, shard := range op.ShardIds {
+				if kv.shardData[shard].State == PullDone {
+					kv.shardData.UpdateState(shard, Running)
+				}
 			}
 		}
+
 	} else if op.Op == "Refresh" {
 		if op.Config.Num == kv.CurConfig.Num+1 {
 			// set ShardData state
