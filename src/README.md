@@ -2,7 +2,7 @@
 * Lab 1: MapReduce => Done
 * Lab 2: Raft => Done
 * Lab 3: Fault-tolerant Key/Value Service => Done
-* Lab 4: Sharded Key/Value Service => Todo
+* Lab 4: Sharded Key/Value Service => Done
 
 # Essays you should read
 * [MapReduce](https://static.googleusercontent.com/media/research.google.com/en//archive/mapreduce-osdi04.pdf)
